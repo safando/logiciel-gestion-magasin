@@ -4,3 +4,7 @@ pandas
 openpyxl
 python-multipart
 weasyprint
+
+# Security and Authentication
+passlib[bcrypt]
+python-jose[cryptography]

@@ -14,70 +14,104 @@
 </head>
 <body>
 
-    <!-- Barre de navigation principale -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
-        <div class="container-fluid">
-            <a class="navbar-brand" href="#">
-                <i class="bi bi-shop"></i>
-                Gestion de Magasin
-            </a>
-            <div class="d-flex ms-auto">
-                <!-- Sélecteur de thème -->
-                <div class="nav-item dropdown">
-                    <button class="btn nav-link dropdown-toggle" id="bd-theme" type="button" aria-expanded="false" data-bs-toggle="dropdown" aria-label="Toggle theme">
-                        <i class="bi bi-sun-fill theme-icon-active"></i>
-                    </button>
-                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="bd-theme">
-                        <li><button type="button" class="dropdown-item d-flex align-items-center" data-bs-theme-value="light"><i class="bi bi-sun-fill me-2"></i> Clair</button></li>
-                        <li><button type="button" class="dropdown-item d-flex align-items-center" data-bs-theme-value="dark"><i class="bi bi-moon-stars-fill me-2"></i> Sombre</button></li>
-                        <li><button type="button" class="dropdown-item d-flex align-items-center" data-bs-theme-value="auto"><i class="bi bi-circle-half me-2"></i> Auto</button></li>
-                    </ul>
+    <!-- Écran de connexion -->
+    <div id="login-screen" class="container">
+        <div class="row justify-content-center align-items-center vh-100">
+            <div class="col-md-4">
+                <div class="card shadow">
+                    <div class="card-body p-4">
+                        <h3 class="card-title text-center mb-4">
+                            <i class="bi bi-shop"></i> Connexion
+                        </h3>
+                        <form id="login-form">
+                            <div class="mb-3">
+                                <label for="username" class="form-label">Nom d'utilisateur</label>
+                                <input type="text" class="form-control" id="username" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="password" class="form-label">Mot de passe</label>
+                                <input type="password" class="form-control" id="password" required>
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100">Se connecter</button>
+                            <div id="login-error" class="text-danger mt-2" style="display: none;"></div>
+                        </form>
+                    </div>
                 </div>
             </div>
         </div>
-    </nav>
+    </div>
 
-    <div class="container-fluid">
-        <div class="row">
-            <!-- Barre latérale pour les onglets -->
-            <nav id="sidebar" class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse">
-                <div class="position-sticky pt-3">
-                    <ul class="nav flex-column">
-                        <li class="nav-item">
-                            <a class="nav-link active" href="#" data-tab="dashboard">
-                                <i class="bi bi-speedometer2"></i> Tableau de Bord
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="#" data-tab="stock">
-                                <i class="bi bi-box-seam"></i> Gestion Stock
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="#" data-tab="ventes">
-                                <i class="bi bi-cart-check"></i> Gestion Ventes
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="#" data-tab="pertes">
-                                <i class="bi bi-trash"></i> Gestion Pertes
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="#" data-tab="analyse">
-                                <i class="bi bi-graph-up-arrow"></i> Analyse Financière
-                            </a>
-                        </li>
-                    </ul>
+    <!-- Contenu principal de l'application (caché par défaut) -->
+    <div id="app-content" style="display: none;">
+        <!-- Barre de navigation principale -->
+        <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
+            <div class="container-fluid">
+                <a class="navbar-brand" href="#">
+                    <i class="bi bi-shop"></i>
+                    Gestion de Magasin
+                </a>
+                <div class="d-flex ms-auto align-items-center">
+                    <!-- Sélecteur de thème -->
+                    <div class="nav-item dropdown me-3">
+                        <button class="btn nav-link dropdown-toggle" id="bd-theme" type="button" aria-expanded="false" data-bs-toggle="dropdown" aria-label="Toggle theme">
+                            <i class="bi bi-sun-fill theme-icon-active"></i>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="bd-theme">
+                            <li><button type="button" class="dropdown-item d-flex align-items-center" data-bs-theme-value="light"><i class="bi bi-sun-fill me-2"></i> Clair</button></li>
+                            <li><button type="button" class="dropdown-item d-flex align-items-center" data-bs-theme-value="dark"><i class="bi bi-moon-stars-fill me-2"></i> Sombre</button></li>
+                            <li><button type="button" class="dropdown-item d-flex align-items-center" data-bs-theme-value="auto"><i class="bi bi-circle-half me-2"></i> Auto</button></li>
+                        </ul>
+                    </div>
+                    <!-- Bouton de déconnexion -->
+                    <button id="logout-button" class="btn btn-outline-light">
+                        <i class="bi bi-box-arrow-right"></i> Déconnexion
+                    </button>
                 </div>
-            </nav>
+            </div>
+        </nav>
 
-            <!-- Contenu principal -->
-            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
-                <div id="main-content" class="pt-3 pb-2 mb-3 border-bottom">
-                    <!-- Le contenu de chaque onglet sera injecté ici par JavaScript -->
-                </div>
-            </main>
+        <div class="container-fluid">
+            <div class="row">
+                <!-- Barre latérale pour les onglets -->
+                <nav id="sidebar" class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse">
+                    <div class="position-sticky pt-3">
+                        <ul class="nav flex-column">
+                            <li class="nav-item">
+                                <a class="nav-link active" href="#" data-tab="dashboard">
+                                    <i class="bi bi-speedometer2"></i> Tableau de Bord
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="#" data-tab="stock">
+                                    <i class="bi bi-box-seam"></i> Gestion Stock
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="#" data-tab="ventes">
+                                    <i class="bi bi-cart-check"></i> Gestion Ventes
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="#" data-tab="pertes">
+                                    <i class="bi bi-trash"></i> Gestion Pertes
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="#" data-tab="analyse">
+                                    <i class="bi bi-graph-up-arrow"></i> Analyse Financière
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </nav>
+
+                <!-- Contenu principal -->
+                <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+                    <div id="main-content" class="pt-3 pb-2 mb-3 border-bottom">
+                        <!-- Le contenu de chaque onglet sera injecté ici par JavaScript -->
+                    </div>
+                </main>
+            </div>
         </div>
     </div>
 

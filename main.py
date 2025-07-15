@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends, status
 import sqlite3
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
@@ -7,6 +7,28 @@ import database
 import pandas as pd
 from weasyprint import HTML
 import io
+from datetime import timedelta
+
+# Importations pour l'authentification
+from fastapi.security import OAuth2PasswordRequestForm
+import auth
+
+# --- Base de données utilisateur "en dur" ---
+# Dans une vraie application, cela viendrait d'une base de données.
+# Le mot de passe pour "admin" est "Dakar2026@"
+FAKE_USERS_DB = {
+    "admin": {
+        "username": "admin",
+        "full_name": "Admin",
+        "email": "admin@example.com",
+        "hashed_password": "$2b$12$EixZAxW5d9cW8/d5b2oZ6eK.zJ.nZJ.e.fJ/f.f.f.f.f.f.f.f", # Mdp: Dakar2026@
+        "disabled": False,
+    }
+}
+
+def get_user(db, username: str):
+    if username in db:
+        return db[username]
 
 # Modèles de données Pydantic pour la validation
 class Produit(BaseModel):
@@ -43,16 +65,31 @@ async def root():
     """Sert la page web principale."""
     return FileResponse('static/index.html')
 
-# --- API Endpoints (seront ajoutés ici) ---
+# --- Endpoint de connexion ---
+@app.post("/token")
+async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
+    user = get_user(FAKE_USERS_DB, form_data.username)
+    if not user or not auth.verify_password(form_data.password, user["hashed_password"]):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    access_token_expires = timedelta(minutes=auth.ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = auth.create_access_token(
+        data={"sub": user["username"]}, expires_delta=access_token_expires
+    )
+    return {"access_token": access_token, "token_type": "bearer"}
 
-# --- Endpoints pour les PRODUITS ---
+
+# --- Endpoints pour les PRODUITS (protégés) ---
 @app.get("/api/produits")
-async def api_get_produits():
+async def api_get_produits(current_user: dict = Depends(auth.get_current_user)):
     produits = database.get_all_produits()
     return JSONResponse(content=produits)
 
 @app.post("/api/produits")
-async def api_add_produit(produit: Produit):
+async def api_add_produit(produit: Produit, current_user: dict = Depends(auth.get_current_user)):
     try:
         new_id = database.add_produit(produit.nom, produit.prix_achat, produit.prix_vente, produit.quantite)
         return {"status": "success", "message": "Produit ajouté avec succès.", "id": new_id}
@@ -62,7 +99,7 @@ async def api_add_produit(produit: Produit):
         raise HTTPException(status_code=500, detail=f"Erreur interne du serveur: {e}")
 
 @app.put("/api/produits")
-async def api_update_produit(produit: ProduitUpdate):
+async def api_update_produit(produit: ProduitUpdate, current_user: dict = Depends(auth.get_current_user)):
     try:
         database.update_produit(produit.id, produit.nom, produit.prix_achat, produit.prix_vente, produit.quantite)
         return {"status": "success", "message": "Produit mis à jour avec succès."}
@@ -70,7 +107,7 @@ async def api_update_produit(produit: ProduitUpdate):
         raise HTTPException(status_code=500, detail=f"Erreur interne du serveur: {e}")
 
 @app.delete("/api/produits/{produit_id}")
-async def api_delete_produit(produit_id: int):
+async def api_delete_produit(produit_id: int, current_user: dict = Depends(auth.get_current_user)):
     try:
         database.delete_produit(produit_id)
         return {"status": "success", "message": "Produit supprimé avec succès."}
@@ -78,14 +115,14 @@ async def api_delete_produit(produit_id: int):
         raise HTTPException(status_code=500, detail=f"Erreur interne du serveur: {e}")
 
 
-# --- Endpoints pour les VENTES ---
+# --- Endpoints pour les VENTES (protégés) ---
 @app.get("/api/ventes")
-async def api_get_ventes():
+async def api_get_ventes(current_user: dict = Depends(auth.get_current_user)):
     ventes = database.get_all_ventes()
     return JSONResponse(content=ventes)
 
 @app.post("/api/ventes")
-async def api_add_vente(vente: Vente):
+async def api_add_vente(vente: Vente, current_user: dict = Depends(auth.get_current_user)):
     try:
         database.add_vente(vente.produit_id, vente.quantite)
         return {"status": "success", "message": "Vente enregistrée avec succès."}
@@ -95,14 +132,14 @@ async def api_add_vente(vente: Vente):
         raise HTTPException(status_code=500, detail="Erreur interne du serveur.")
 
 
-# --- Endpoints pour les PERTES ---
+# --- Endpoints pour les PERTES (protégés) ---
 @app.get("/api/pertes")
-async def api_get_pertes():
+async def api_get_pertes(current_user: dict = Depends(auth.get_current_user)):
     pertes = database.get_all_pertes()
     return JSONResponse(content=pertes)
 
 @app.post("/api/pertes")
-async def api_add_perte(perte: Perte):
+async def api_add_perte(perte: Perte, current_user: dict = Depends(auth.get_current_user)):
     try:
         database.add_perte(perte.produit_id, perte.quantite)
         return {"status": "success", "message": "Perte enregistrée avec succès."}
@@ -112,9 +149,9 @@ async def api_add_perte(perte: Perte):
         raise HTTPException(status_code=500, detail="Erreur interne du serveur.")
 
 
-# --- Endpoint pour l'ANALYSE ---
+# --- Endpoint pour l'ANALYSE (protégé) ---
 @app.get("/api/analyse")
-async def api_get_analyse(start_date: str, end_date: str):
+async def api_get_analyse(start_date: str, end_date: str, current_user: dict = Depends(auth.get_current_user)):
     try:
         data = database.get_analyse_financiere(start_date, end_date)
         return JSONResponse(content=data)
@@ -122,9 +159,9 @@ async def api_get_analyse(start_date: str, end_date: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-# --- Endpoint pour le TABLEAU DE BORD ---
+# --- Endpoint pour le TABLEAU DE BORD (protégé) ---
 @app.get("/api/dashboard")
-async def api_get_dashboard_kpis():
+async def api_get_dashboard_kpis(current_user: dict = Depends(auth.get_current_user)):
     try:
         kpis = database.get_dashboard_kpis()
         return JSONResponse(content=kpis)
@@ -132,9 +169,9 @@ async def api_get_dashboard_kpis():
         raise HTTPException(status_code=500, detail=str(e))
 
 
-# --- Endpoint pour l'EXPORT ---
+# --- Endpoint pour l'EXPORT (protégé) ---
 @app.get("/api/export")
-async def api_export_data(data_type: str, file_format: str):
+async def api_export_data(data_type: str, file_format: str, current_user: dict = Depends(auth.get_current_user)):
     data_fetchers = {
         "stock": database.get_all_produits,
         "ventes": database.get_all_ventes,

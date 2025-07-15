@@ -121,75 +121,86 @@ async def root():
     return FileResponse('static/index.html')
 
 @app.get("/api/produits", response_model=List[Produit])
-async def api_get_produits(db: Session = Depends(database.get_db), current_user: dict = Depends(auth.get_current_user)):
-    return database.get_all_produits(db)
+async def api_get_produits(current_user: dict = Depends(auth.get_current_user)):
+    with database.get_db() as db:
+        return database.get_all_produits(db)
 
 @app.post("/api/produits", response_model=Produit)
-async def api_add_produit(produit: ProduitCreate, db: Session = Depends(database.get_db), current_user: dict = Depends(auth.get_current_user)):
-    return database.add_produit(db, **produit.model_dump())
+async def api_add_produit(produit: ProduitCreate, current_user: dict = Depends(auth.get_current_user)):
+    with database.get_db() as db:
+        return database.add_produit(db, **produit.model_dump())
 
 @app.put("/api/produits", response_model=Produit)
-async def api_update_produit(produit: Produit, db: Session = Depends(database.get_db), current_user: dict = Depends(auth.get_current_user)):
-    updated = database.update_produit(db, produit.id, **produit.model_dump())
-    if not updated:
-        raise HTTPException(status_code=404, detail="Produit non trouvé")
-    return updated
+async def api_update_produit(produit: Produit, current_user: dict = Depends(auth.get_current_user)):
+    with database.get_db() as db:
+        updated = database.update_produit(db, produit.id, **produit.model_dump())
+        if not updated:
+            raise HTTPException(status_code=404, detail="Produit non trouvé")
+        return updated
 
 @app.delete("/api/produits/{produit_id}")
-async def api_delete_produit(produit_id: int, db: Session = Depends(database.get_db), current_user: dict = Depends(auth.get_current_user)):
-    deleted = database.delete_produit(db, produit_id)
-    if not deleted:
-        raise HTTPException(status_code=404, detail="Produit non trouvé")
-    return {"status": "success", "message": "Produit supprimé"}
+async def api_delete_produit(produit_id: int, current_user: dict = Depends(auth.get_current_user)):
+    with database.get_db() as db:
+        deleted = database.delete_produit(db, produit_id)
+        if not deleted:
+            raise HTTPException(status_code=404, detail="Produit non trouvé")
+        return {"status": "success", "message": "Produit supprimé"}
 
 @app.get("/api/ventes", response_model=List[Vente])
-async def api_get_ventes(db: Session = Depends(database.get_db), current_user: dict = Depends(auth.get_current_user)):
-    return database.get_all_ventes(db)
+async def api_get_ventes(current_user: dict = Depends(auth.get_current_user)):
+    with database.get_db() as db:
+        return database.get_all_ventes(db)
 
 @app.post("/api/ventes", response_model=Vente)
-async def api_add_vente(vente: VenteCreate, db: Session = Depends(database.get_db), current_user: dict = Depends(auth.get_current_user)):
-    try:
-        return database.add_vente(db, **vente.model_dump())
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+async def api_add_vente(vente: VenteCreate, current_user: dict = Depends(auth.get_current_user)):
+    with database.get_db() as db:
+        try:
+            return database.add_vente(db, **vente.model_dump())
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e))
 
 @app.get("/api/pertes", response_model=List[Perte])
-async def api_get_pertes(db: Session = Depends(database.get_db), current_user: dict = Depends(auth.get_current_user)):
-    return database.get_all_pertes(db)
+async def api_get_pertes(current_user: dict = Depends(auth.get_current_user)):
+    with database.get_db() as db:
+        return database.get_all_pertes(db)
 
 @app.post("/api/pertes", response_model=Perte)
-async def api_add_perte(perte: PerteCreate, db: Session = Depends(database.get_db), current_user: dict = Depends(auth.get_current_user)):
-    try:
-        return database.add_perte(db, **perte.model_dump())
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+async def api_add_perte(perte: PerteCreate, current_user: dict = Depends(auth.get_current_user)):
+    with database.get_db() as db:
+        try:
+            return database.add_perte(db, **perte.model_dump())
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e))
 
 @app.get("/api/dashboard", response_model=DashboardData)
-async def api_get_dashboard_kpis(db: Session = Depends(database.get_db), current_user: dict = Depends(auth.get_current_user)):
-    return database.get_dashboard_kpis(db)
+async def api_get_dashboard_kpis(current_user: dict = Depends(auth.get_current_user)):
+    with database.get_db() as db:
+        return database.get_dashboard_kpis(db)
 
 @app.get("/api/analyse", response_model=AnalyseData)
-async def api_get_analyse(start_date: str, end_date: str, db: Session = Depends(database.get_db), current_user: dict = Depends(auth.get_current_user)):
-    try:
-        start_date_iso = f"{start_date}T00:00:00"
-        end_date_iso = f"{end_date}T23:59:59"
-        return database.get_analyse_financiere(db, start_date_iso, end_date_iso)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erreur lors de l'analyse: {e}")
+async def api_get_analyse(start_date: str, end_date: str, current_user: dict = Depends(auth.get_current_user)):
+    with database.get_db() as db:
+        try:
+            start_date_iso = f"{start_date}T00:00:00"
+            end_date_iso = f"{end_date}T23:59:59"
+            return database.get_analyse_financiere(db, start_date_iso, end_date_iso)
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Erreur lors de l'analyse: {e}")
 
 @app.get("/api/export")
-async def api_export_data(data_type: str, file_format: str, db: Session = Depends(database.get_db), current_user: dict = Depends(auth.get_current_user)):
-    if data_type == "stock":
-        data = database.get_all_produits(db)
-        records = [p.model_dump() for p in data]
-    elif data_type == "ventes":
-        data = database.get_all_ventes(db)
-        records = [v.model_dump() for v in data]
-    elif data_type == "pertes":
-        data = database.get_all_pertes(db)
-        records = [p.model_dump() for p in data]
-    else:
-        raise HTTPException(status_code=400, detail="Type de données non valide.")
+async def api_export_data(data_type: str, file_format: str, current_user: dict = Depends(auth.get_current_user)):
+    with database.get_db() as db:
+        if data_type == "stock":
+            data = database.get_all_produits(db)
+            records = [p.model_dump() for p in data]
+        elif data_type == "ventes":
+            data = database.get_all_ventes(db)
+            records = [v.model_dump() for v in data]
+        elif data_type == "pertes":
+            data = database.get_all_pertes(db)
+            records = [p.model_dump() for p in data]
+        else:
+            raise HTTPException(status_code=400, detail="Type de données non valide.")
 
     df = pd.DataFrame(records)
 

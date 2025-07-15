@@ -2,15 +2,13 @@ import os
 from sqlalchemy import create_engine, Column, Integer, String, Float, DateTime, ForeignKey, func
 from sqlalchemy.orm import sessionmaker, relationship, declarative_base, Session, joinedload
 from contextlib import contextmanager
-from datetime import datetime
+from datetime import datetime, timezone
 
 # ==============================================================================
 # CONFIGURATION ET MOTEUR DE LA BASE DE DONNÉES
 # ==============================================================================
 
-DATABASE_URL = os.getenv("DATABASE_URL")
-if not DATABASE_URL:
-    raise ValueError("La variable d'environnement DATABASE_URL n'est pas définie.")
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./test.db")
 
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -36,7 +34,7 @@ class Vente(Base):
     produit_id = Column(Integer, ForeignKey("produits.id"), nullable=False)
     quantite = Column(Integer, nullable=False)
     prix_total = Column(Float, nullable=False)
-    date = Column(DateTime, default=datetime.utcnow)
+    date = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     produit = relationship("Produit", back_populates="ventes")
 
 class Perte(Base):
@@ -44,7 +42,7 @@ class Perte(Base):
     id = Column(Integer, primary_key=True, index=True)
     produit_id = Column(Integer, ForeignKey("produits.id"), nullable=False)
     quantite = Column(Integer, nullable=False)
-    date = Column(DateTime, default=datetime.utcnow)
+    date = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     produit = relationship("Produit", back_populates="pertes")
 
 # ==============================================================================
@@ -127,7 +125,7 @@ def add_perte(db: Session, produit_id: int, quantite: int):
     return nouvelle_perte
 
 def get_dashboard_kpis(db: Session):
-    today = datetime.utcnow().date()
+    today = datetime.now(timezone.utc).date()
     ca_today = db.query(func.sum(Vente.prix_total)).filter(func.date(Vente.date) == today).scalar() or 0
     ventes_today = db.query(func.sum(Vente.quantite)).filter(func.date(Vente.date) == today).scalar() or 0
     total_stock_quantite = db.query(func.sum(Produit.quantite)).scalar() or 0
@@ -149,7 +147,7 @@ def get_analyse_financiere(db: Session, start_date_str: str, end_date_str: str):
     start_date = datetime.fromisoformat(start_date_str)
     end_date = datetime.fromisoformat(end_date_str)
     chiffre_affaires = db.query(func.sum(Vente.prix_total)).filter(Vente.date >= start_date, Vente.date <= end_date).scalar() or 0
-    cogs = db.query(func.sum(Produit.prix_achat * Vente.quantite)).join(Produit).filter(Vente.date >= start_date, Vente.date <= end_date).scalar() or 0
+    cogs = db.query(func.sum(Produit.prix_achat * Vente.quantite)).select_from(Vente).join(Produit).filter(Vente.date >= start_date, Vente.date <= end_date).scalar() or 0
     benefice = chiffre_affaires - cogs
     graph_data_query = db.query(func.date(Vente.date).label('jour'), func.sum(Vente.prix_total).label('ca_jour')).filter(Vente.date >= start_date, Vente.date <= end_date).group_by(func.date(Vente.date)).order_by(func.date(Vente.date))
     graph_data = graph_data_query.all()

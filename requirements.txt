@@ -12,3 +12,7 @@ python-jose[cryptography]
 # Database - PostgreSQL
 SQLAlchemy
 psycopg2-binary
+
+# Testing
+pytest
+httpx

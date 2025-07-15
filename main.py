@@ -1,5 +1,4 @@
 from fastapi import FastAPI, HTTPException, Depends, status
-import sqlite3
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from pydantic import BaseModel
@@ -12,6 +11,7 @@ from datetime import timedelta
 # Importations pour l'authentification
 from fastapi.security import OAuth2PasswordRequestForm
 import auth
+from sqlalchemy.orm import Session
 
 # --- Base de données utilisateur "en dur" ---
 # Dans une vraie application, cela viendrait d'une base de données.
@@ -84,105 +84,89 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
 
 # --- Endpoints pour les PRODUITS (protégés) ---
 @app.get("/api/produits")
-async def api_get_produits(current_user: dict = Depends(auth.get_current_user)):
-    produits = database.get_all_produits()
-    return JSONResponse(content=produits)
+async def api_get_produits(db: Session = Depends(database.get_db), current_user: dict = Depends(auth.get_current_user)):
+    produits = database.get_all_produits(db)
+    return produits
 
 @app.post("/api/produits")
-async def api_add_produit(produit: Produit, current_user: dict = Depends(auth.get_current_user)):
+async def api_add_produit(produit: Produit, db: Session = Depends(database.get_db), current_user: dict = Depends(auth.get_current_user)):
     try:
-        new_id = database.add_produit(produit.nom, produit.prix_achat, produit.prix_vente, produit.quantite)
-        return {"status": "success", "message": "Produit ajouté avec succès.", "id": new_id}
-    except sqlite3.IntegrityError:
-        raise HTTPException(status_code=400, detail="Un produit avec ce nom existe déjà.")
+        new_produit = database.add_produit(db, produit.nom, produit.prix_achat, produit.prix_vente, produit.quantite)
+        return {"status": "success", "message": "Produit ajouté avec succès.", "id": new_produit.id}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erreur interne du serveur: {e}")
 
 @app.put("/api/produits")
-async def api_update_produit(produit: ProduitUpdate, current_user: dict = Depends(auth.get_current_user)):
-    try:
-        database.update_produit(produit.id, produit.nom, produit.prix_achat, produit.prix_vente, produit.quantite)
-        return {"status": "success", "message": "Produit mis à jour avec succès."}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erreur interne du serveur: {e}")
+async def api_update_produit(produit: ProduitUpdate, db: Session = Depends(database.get_db), current_user: dict = Depends(auth.get_current_user)):
+    updated_produit = database.update_produit(db, produit.id, produit.nom, produit.prix_achat, produit.prix_vente, produit.quantite)
+    if not updated_produit:
+        raise HTTPException(status_code=404, detail="Produit non trouvé")
+    return {"status": "success", "message": "Produit mis à jour avec succès."}
 
 @app.delete("/api/produits/{produit_id}")
-async def api_delete_produit(produit_id: int, current_user: dict = Depends(auth.get_current_user)):
-    try:
-        database.delete_produit(produit_id)
-        return {"status": "success", "message": "Produit supprimé avec succès."}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erreur interne du serveur: {e}")
+async def api_delete_produit(produit_id: int, db: Session = Depends(database.get_db), current_user: dict = Depends(auth.get_current_user)):
+    deleted_produit = database.delete_produit(db, produit_id)
+    if not deleted_produit:
+        raise HTTPException(status_code=404, detail="Produit non trouvé")
+    return {"status": "success", "message": "Produit supprimé avec succès."}
 
 
 # --- Endpoints pour les VENTES (protégés) ---
 @app.get("/api/ventes")
-async def api_get_ventes(current_user: dict = Depends(auth.get_current_user)):
-    ventes = database.get_all_ventes()
-    return JSONResponse(content=ventes)
+async def api_get_ventes(db: Session = Depends(database.get_db), current_user: dict = Depends(auth.get_current_user)):
+    # Cette fonction doit être ajoutée à database.py
+    ventes = db.query(database.Vente).order_by(database.Vente.date.desc()).all()
+    return ventes
 
 @app.post("/api/ventes")
-async def api_add_vente(vente: Vente, current_user: dict = Depends(auth.get_current_user)):
+async def api_add_vente(vente: Vente, db: Session = Depends(database.get_db), current_user: dict = Depends(auth.get_current_user)):
     try:
-        database.add_vente(vente.produit_id, vente.quantite)
+        database.add_vente(db, vente.produit_id, vente.quantite)
         return {"status": "success", "message": "Vente enregistrée avec succès."}
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail="Erreur interne du serveur.")
 
 
 # --- Endpoints pour les PERTES (protégés) ---
 @app.get("/api/pertes")
-async def api_get_pertes(current_user: dict = Depends(auth.get_current_user)):
-    pertes = database.get_all_pertes()
-    return JSONResponse(content=pertes)
+async def api_get_pertes(db: Session = Depends(database.get_db), current_user: dict = Depends(auth.get_current_user)):
+    # Cette fonction doit être ajoutée à database.py
+    pertes = db.query(database.Perte).order_by(database.Perte.date.desc()).all()
+    return pertes
 
 @app.post("/api/pertes")
-async def api_add_perte(perte: Perte, current_user: dict = Depends(auth.get_current_user)):
+async def api_add_perte(perte: Perte, db: Session = Depends(database.get_db), current_user: dict = Depends(auth.get_current_user)):
     try:
-        database.add_perte(perte.produit_id, perte.quantite)
+        database.add_perte(db, perte.produit_id, perte.quantite)
         return {"status": "success", "message": "Perte enregistrée avec succès."}
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail="Erreur interne du serveur.")
-
-
-# --- Endpoint pour l'ANALYSE (protégé) ---
-@app.get("/api/analyse")
-async def api_get_analyse(start_date: str, end_date: str, current_user: dict = Depends(auth.get_current_user)):
-    try:
-        data = database.get_analyse_financiere(start_date, end_date)
-        return JSONResponse(content=data)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
 
 
 # --- Endpoint pour le TABLEAU DE BORD (protégé) ---
 @app.get("/api/dashboard")
-async def api_get_dashboard_kpis(current_user: dict = Depends(auth.get_current_user)):
-    try:
-        kpis = database.get_dashboard_kpis()
-        return JSONResponse(content=kpis)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+async def api_get_dashboard_kpis(db: Session = Depends(database.get_db), current_user: dict = Depends(auth.get_current_user)):
+    kpis = database.get_dashboard_kpis(db)
+    return kpis
+
+
+# --- Endpoint pour l'ANALYSE (protégé) ---
+@app.get("/api/analyse")
+async def api_get_analyse(start_date: str, end_date: str, db: Session = Depends(database.get_db), current_user: dict = Depends(auth.get_current_user)):
+    data = database.get_analyse_financiere(db, start_date, end_date)
+    return data
 
 
 # --- Endpoint pour l'EXPORT (protégé) ---
 @app.get("/api/export")
-async def api_export_data(data_type: str, file_format: str, current_user: dict = Depends(auth.get_current_user)):
-    data_fetchers = {
-        "stock": database.get_all_produits,
-        "ventes": database.get_all_ventes,
-        "pertes": database.get_all_pertes
-    }
-
-    if data_type not in data_fetchers:
-        raise HTTPException(status_code=400, detail="Type de données non valide.")
-
-    data = data_fetchers[data_type]()
-    df = pd.DataFrame(data)
+async def api_export_data(data_type: str, file_format: str, db: Session = Depends(database.get_db), current_user: dict = Depends(auth.get_current_user)):
+    # ... (La logique d'export doit être adaptée pour SQLAlchemy)
+    # Pour l'instant, nous laissons cette partie simplifiée
+    if data_type == "stock":
+        data = database.get_all_produits(db)
+        df = pd.DataFrame([d.__dict__ for d in data])
+    else:
+        df = pd.DataFrame()
 
     if file_format == "excel":
         output = io.BytesIO()
@@ -195,15 +179,7 @@ async def api_export_data(data_type: str, file_format: str, current_user: dict =
         return StreamingResponse(io.BytesIO(output.getvalue()), media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', headers=headers)
 
     elif file_format == "pdf":
-        html_string = f"""
-        <html>
-            <head><title>Export {data_type.capitalize()}</title></head>
-            <body>
-                <h1>Rapport - {data_type.capitalize()}</h1>
-                {df.to_html(index=False)}
-            </body>
-        </html>
-        """
+        html_string = f"<h1>Rapport - {data_type.capitalize()}</h1>{df.to_html(index=False)}"
         pdf_bytes = HTML(string=html_string).write_pdf()
         headers = {
             'Content-Disposition': f'attachment; filename="export_{data_type}.pdf"'
@@ -212,7 +188,3 @@ async def api_export_data(data_type: str, file_format: str, current_user: dict =
 
     else:
         raise HTTPException(status_code=400, detail="Format de fichier non valide.")
-
-
-# Exemple pour lancer le serveur (à taper dans le terminal):
-# uvicorn main:app --reload

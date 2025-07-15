@@ -153,8 +153,14 @@ async def api_get_dashboard_kpis(db: Session = Depends(database.get_db), current
 # --- Endpoint pour l'ANALYSE (protégé) ---
 @app.get("/api/analyse")
 async def api_get_analyse(start_date: str, end_date: str, db: Session = Depends(database.get_db), current_user: dict = Depends(auth.get_current_user)):
-    data = database.get_analyse_financiere(db, start_date, end_date)
-    return data
+    try:
+        # Ajoute l'heure pour être compatible avec le format ISO
+        start_date_iso = f"{start_date}T00:00:00"
+        end_date_iso = f"{end_date}T23:59:59"
+        data = database.get_analyse_financiere(db, start_date_iso, end_date_iso)
+        return data
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erreur lors de l'analyse: {e}")
 
 
 # --- Endpoint pour l'EXPORT (protégé) ---

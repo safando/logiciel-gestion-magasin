@@ -151,12 +151,31 @@ def get_dashboard_kpis(db):
         "stock_par_produit": [dict(r._mapping) for r in stock_par_produit]
     }
 
-def get_analyse_financiere(db, start_date, end_date):
-    # ... (Cette fonction nécessite une logique plus complexe avec SQLAlchemy)
-    # Pour l'instant, nous retournons des données vides pour ne pas bloquer.
+def get_analyse_financiere(db, start_date_str: str, end_date_str: str):
+    start_date = datetime.fromisoformat(start_date_str)
+    end_date = datetime.fromisoformat(end_date_str)
+
+    # Chiffre d'affaires total sur la période
+    chiffre_affaires = db.query(func.sum(Vente.prix_total))         .filter(Vente.date >= start_date, Vente.date <= end_date)         .scalar() or 0
+
+    # Coût des marchandises vendues (COGS)
+    cogs_query = db.query(func.sum(Produit.prix_achat * Vente.quantite))         .join(Produit)         .filter(Vente.date >= start_date, Vente.date <= end_date)
+    cogs = cogs_query.scalar() or 0
+
+    # Bénéfice brut
+    benefice = chiffre_affaires - cogs
+
+    # Données pour le graphique (CA par jour)
+    graph_data_query = db.query(
+            func.date(Vente.date).label('jour'),
+            func.sum(Vente.prix_total).label('ca_jour')
+        )         .filter(Vente.date >= start_date, Vente.date <= end_date)         .group_by(func.date(Vente.date))         .order_by(func.date(Vente.date))
+    
+    graph_data = graph_data_query.all()
+
     return {
-        "chiffre_affaires": 0,
-        "cogs": 0,
-        "benefice": 0,
-        "graph_data": []
+        "chiffre_affaires": chiffre_affaires,
+        "cogs": cogs,
+        "benefice": benefice,
+        "graph_data": [{"jour": r.jour.isoformat(), "ca_jour": r.ca_jour} for r in graph_data]
     }

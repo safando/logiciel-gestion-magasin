@@ -21,7 +21,7 @@ FAKE_USERS_DB = {
         "username": "admin",
         "full_name": "Admin",
         "email": "admin@example.com",
-        "hashed_password": "$2b$12$EixZAxW5d9cW8/d5b2oZ6eK.zJ.nZJ.e.fJ/f.f.f.f.f.f.f.f", # Mdp: Dakar2026@
+        "hashed_password": "$2b$12$pAqiSQ2DJhVFKfD1e3dpCu0cqb6IR3DPKLuwpEqCwjuBvhUkO9Yhm", # Mdp: Dakar2026@
         "disabled": False,
     }
 }

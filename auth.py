@@ -7,7 +7,7 @@ from datetime import datetime, timedelta, timezone
 
 # --- Configuration ---
 # Clé secrète pour signer les jetons JWT. En production, utilisez une clé plus complexe et stockez-la de manière sécurisée.
-SECRET_KEY = "votre_super_cle_secrete_a_changer" 
+SECRET_KEY = "a_tres_longue_cle_secrete_difficile_a_deviner_pour_la_prod_0987654321" 
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 

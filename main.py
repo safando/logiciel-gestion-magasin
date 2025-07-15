@@ -85,8 +85,18 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
 # --- Endpoints pour les PRODUITS (protégés) ---
 @app.get("/api/produits")
 async def api_get_produits(db: Session = Depends(database.get_db), current_user: dict = Depends(auth.get_current_user)):
-    produits = database.get_all_produits(db)
-    return produits
+    produits_db = database.get_all_produits(db)
+    # Convertir manuellement la liste d'objets en une liste de dictionnaires
+    produits_list = [
+        {
+            "id": p.id,
+            "nom": p.nom,
+            "prix_achat": p.prix_achat,
+            "prix_vente": p.prix_vente,
+            "quantite": p.quantite
+        } for p in produits_db
+    ]
+    return produits_list
 
 @app.post("/api/produits")
 async def api_add_produit(produit: Produit, db: Session = Depends(database.get_db), current_user: dict = Depends(auth.get_current_user)):

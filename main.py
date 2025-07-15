@@ -1,219 +1,212 @@
 from fastapi import FastAPI, HTTPException, Depends, status
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
+from typing import List, Optional
 import database
 import pandas as pd
 from weasyprint import HTML
 import io
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 # Importations pour l'authentification
 from fastapi.security import OAuth2PasswordRequestForm
 import auth
 from sqlalchemy.orm import Session, joinedload
 
-# --- Base de données utilisateur "en dur" ---
-# Dans une vraie application, cela viendrait d'une base de données.
-# Le mot de passe pour "admin" est "Dakar2026@"
-FAKE_USERS_DB = {
-    "admin": {
-        "username": "admin",
-        "full_name": "Admin",
-        "email": "admin@example.com",
-        "hashed_password": "$2b$12$pAqiSQ2DJhVFKfD1e3dpCu0cqb6IR3DPKLuwpEqCwjuBvhUkO9Yhm", # Mdp: Dakar2026@
-        "disabled": False,
-    }
-}
+# ==============================================================================
+# DÉFINITION DES MODÈLES Pydantic (SCHEMAS)
+# ==============================================================================
+# Ces modèles définissent la "forme" des données pour l'API.
+# Ils sont utilisés pour la validation, la sérialisation et la documentation.
 
-def get_user(db, username: str):
-    if username in db:
-        return db[username]
-
-# Modèles de données Pydantic pour la validation
-class Produit(BaseModel):
+class ProduitBase(BaseModel):
     nom: str
     prix_achat: float
     prix_vente: float
     quantite: int
 
-class ProduitUpdate(Produit):
+class ProduitCreate(ProduitBase):
+    pass
+
+class Produit(ProduitBase):
     id: int
+    model_config = ConfigDict(from_attributes=True)
 
-class Vente(BaseModel):
+class VenteBase(BaseModel):
     produit_id: int
     quantite: int
 
-class Perte(BaseModel):
+class VenteCreate(VenteBase):
+    pass
+
+class Vente(VenteBase):
+    id: int
+    prix_total: float
+    date: datetime
+    produit_nom: Optional[str] = None
+    model_config = ConfigDict(from_attributes=True)
+
+class PerteBase(BaseModel):
     produit_id: int
     quantite: int
 
-# Crée les tables au démarrage si elles n'existent pas
+class PerteCreate(PerteBase):
+    pass
+
+class Perte(PerteBase):
+    id: int
+    date: datetime
+    produit_nom: Optional[str] = None
+    model_config = ConfigDict(from_attributes=True)
+
+class DashboardData(BaseModel):
+    ca_today: float
+    ventes_today: int
+    total_stock_quantite: int
+    total_stock_valeur: float
+    top_ventes_today: List[dict]
+    low_stock_produits: List[Produit]
+    stock_par_produit: List[dict]
+
+class AnalyseData(BaseModel):
+    chiffre_affaires: float
+    cogs: float
+    benefice: float
+    graph_data: List[dict]
+
+# ==============================================================================
+# INITIALISATION DE L'APPLICATION
+# ==============================================================================
+
 database.create_tables()
 
 app = FastAPI(
     title="API de Gestion de Magasin",
     description="API pour gérer les stocks, les ventes et les pertes.",
-    version="1.0.0"
+    version="2.0.0" # Version 2.0, refactorisée et robuste
 )
 
-# Monte le dossier 'static' pour qu'il soit accessible depuis le navigateur
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-@app.get("/", include_in_schema=False)
-async def root():
-    """Sert la page web principale."""
-    return FileResponse('static/index.html')
+# ==============================================================================
+# AUTHENTIFICATION
+# ==============================================================================
 
-# --- Endpoint de connexion ---
+FAKE_USERS_DB = {
+    "admin": {
+        "username": "admin",
+        "hashed_password": "$2b$12$pAqiSQ2DJhVFKfD1e3dpCu0cqb6IR3DPKLuwpEqCwjuBvhUkO9Yhm",
+    }
+}
+
 @app.post("/token")
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
-    user = get_user(FAKE_USERS_DB, form_data.username)
+    user = FAKE_USERS_DB.get(form_data.username)
     if not user or not auth.verify_password(form_data.password, user["hashed_password"]):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    access_token_expires = timedelta(minutes=auth.ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = auth.create_access_token(
-        data={"sub": user["username"]}, expires_delta=access_token_expires
-    )
+    access_token = auth.create_access_token(data={"sub": user["username"]})
     return {"access_token": access_token, "token_type": "bearer"}
 
+# ==============================================================================
+# ENDPOINTS DE L'API (entièrement typés et validés)
+# ==============================================================================
 
-# --- Endpoints pour les PRODUITS (protégés) ---
-@app.get("/api/produits")
+@app.get("/", include_in_schema=False)
+async def root():
+    return FileResponse('static/index.html')
+
+@app.get("/api/produits", response_model=List[Produit])
 async def api_get_produits(db: Session = Depends(database.get_db), current_user: dict = Depends(auth.get_current_user)):
-    produits_db = database.get_all_produits(db)
-    # Convertir manuellement la liste d'objets en une liste de dictionnaires
-    produits_list = [
-        {
-            "id": p.id,
-            "nom": p.nom,
-            "prix_achat": p.prix_achat,
-            "prix_vente": p.prix_vente,
-            "quantite": p.quantite
-        } for p in produits_db
-    ]
-    return produits_list
+    return database.get_all_produits(db)
 
-@app.post("/api/produits")
-async def api_add_produit(produit: Produit, db: Session = Depends(database.get_db), current_user: dict = Depends(auth.get_current_user)):
-    try:
-        new_produit = database.add_produit(db, produit.nom, produit.prix_achat, produit.prix_vente, produit.quantite)
-        return {"status": "success", "message": "Produit ajouté avec succès.", "id": new_produit.id}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erreur interne du serveur: {e}")
+@app.post("/api/produits", response_model=Produit)
+async def api_add_produit(produit: ProduitCreate, db: Session = Depends(database.get_db), current_user: dict = Depends(auth.get_current_user)):
+    return database.add_produit(db, **produit.model_dump())
 
-@app.put("/api/produits")
-async def api_update_produit(produit: ProduitUpdate, db: Session = Depends(database.get_db), current_user: dict = Depends(auth.get_current_user)):
-    updated_produit = database.update_produit(db, produit.id, produit.nom, produit.prix_achat, produit.prix_vente, produit.quantite)
-    if not updated_produit:
+@app.put("/api/produits", response_model=Produit)
+async def api_update_produit(produit: Produit, db: Session = Depends(database.get_db), current_user: dict = Depends(auth.get_current_user)):
+    updated = database.update_produit(db, produit.id, **produit.model_dump())
+    if not updated:
         raise HTTPException(status_code=404, detail="Produit non trouvé")
-    return {"status": "success", "message": "Produit mis à jour avec succès."}
+    return updated
 
 @app.delete("/api/produits/{produit_id}")
 async def api_delete_produit(produit_id: int, db: Session = Depends(database.get_db), current_user: dict = Depends(auth.get_current_user)):
-    deleted_produit = database.delete_produit(db, produit_id)
-    if not deleted_produit:
+    deleted = database.delete_produit(db, produit_id)
+    if not deleted:
         raise HTTPException(status_code=404, detail="Produit non trouvé")
-    return {"status": "success", "message": "Produit supprimé avec succès."}
+    return {"status": "success", "message": "Produit supprimé"}
 
-
-# --- Endpoints pour les VENTES (protégés) ---
-@app.get("/api/ventes")
+@app.get("/api/ventes", response_model=List[Vente])
 async def api_get_ventes(db: Session = Depends(database.get_db), current_user: dict = Depends(auth.get_current_user)):
-    ventes_db = db.query(database.Vente).options(joinedload(database.Vente.produit)).order_by(database.Vente.date.desc()).all()
-    ventes_list = [
-        {
-            "produit_nom": v.produit.nom if v.produit else "Inconnu",
-            "quantite": v.quantite,
-            "prix_total": v.prix_total,
-            "date": v.date.isoformat()
-        } for v in ventes_db
-    ]
-    return JSONResponse(content=ventes_list)
+    return database.get_all_ventes(db)
 
-@app.post("/api/ventes")
-async def api_add_vente(vente: Vente, db: Session = Depends(database.get_db), current_user: dict = Depends(auth.get_current_user)):
+@app.post("/api/ventes", response_model=Vente)
+async def api_add_vente(vente: VenteCreate, db: Session = Depends(database.get_db), current_user: dict = Depends(auth.get_current_user)):
     try:
-        database.add_vente(db, vente.produit_id, vente.quantite)
-        return {"status": "success", "message": "Vente enregistrée avec succès."}
+        return database.add_vente(db, **vente.model_dump())
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-
-# --- Endpoints pour les PERTES (protégés) ---
-@app.get("/api/pertes")
+@app.get("/api/pertes", response_model=List[Perte])
 async def api_get_pertes(db: Session = Depends(database.get_db), current_user: dict = Depends(auth.get_current_user)):
-    pertes_db = db.query(database.Perte).options(joinedload(database.Perte.produit)).order_by(database.Perte.date.desc()).all()
-    pertes_list = [
-        {
-            "produit_nom": p.produit.nom if p.produit else "Inconnu",
-            "quantite": p.quantite,
-            "date": p.date.isoformat()
-        } for p in pertes_db
-    ]
-    return JSONResponse(content=pertes_list)
+    return database.get_all_pertes(db)
 
-@app.post("/api/pertes")
-async def api_add_perte(perte: Perte, db: Session = Depends(database.get_db), current_user: dict = Depends(auth.get_current_user)):
+@app.post("/api/pertes", response_model=Perte)
+async def api_add_perte(perte: PerteCreate, db: Session = Depends(database.get_db), current_user: dict = Depends(auth.get_current_user)):
     try:
-        database.add_perte(db, perte.produit_id, perte.quantite)
-        return {"status": "success", "message": "Perte enregistrée avec succès."}
+        return database.add_perte(db, **perte.model_dump())
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-
-# --- Endpoint pour le TABLEAU DE BORD (protégé) ---
-@app.get("/api/dashboard")
+@app.get("/api/dashboard", response_model=DashboardData)
 async def api_get_dashboard_kpis(db: Session = Depends(database.get_db), current_user: dict = Depends(auth.get_current_user)):
-    kpis = database.get_dashboard_kpis(db)
-    return kpis
+    return database.get_dashboard_kpis(db)
 
-
-# --- Endpoint pour l'ANALYSE (protégé) ---
-@app.get("/api/analyse")
+@app.get("/api/analyse", response_model=AnalyseData)
 async def api_get_analyse(start_date: str, end_date: str, db: Session = Depends(database.get_db), current_user: dict = Depends(auth.get_current_user)):
     try:
-        # Ajoute l'heure pour être compatible avec le format ISO
         start_date_iso = f"{start_date}T00:00:00"
         end_date_iso = f"{end_date}T23:59:59"
-        data = database.get_analyse_financiere(db, start_date_iso, end_date_iso)
-        return data
+        return database.get_analyse_financiere(db, start_date_iso, end_date_iso)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erreur lors de l'analyse: {e}")
 
-
-# --- Endpoint pour l'EXPORT (protégé) ---
 @app.get("/api/export")
 async def api_export_data(data_type: str, file_format: str, db: Session = Depends(database.get_db), current_user: dict = Depends(auth.get_current_user)):
-    # ... (La logique d'export doit être adaptée pour SQLAlchemy)
-    # Pour l'instant, nous laissons cette partie simplifiée
     if data_type == "stock":
         data = database.get_all_produits(db)
-        df = pd.DataFrame([d.__dict__ for d in data])
+        records = [p.model_dump() for p in data]
+    elif data_type == "ventes":
+        data = database.get_all_ventes(db)
+        records = [v.model_dump() for v in data]
+    elif data_type == "pertes":
+        data = database.get_all_pertes(db)
+        records = [p.model_dump() for p in data]
     else:
-        df = pd.DataFrame()
+        raise HTTPException(status_code=400, detail="Type de données non valide.")
+
+    df = pd.DataFrame(records)
 
     if file_format == "excel":
         output = io.BytesIO()
         with pd.ExcelWriter(output, engine='openpyxl') as writer:
             df.to_excel(writer, index=False, sheet_name=data_type.capitalize())
-        
-        headers = {
-            'Content-Disposition': f'attachment; filename="export_{data_type}.xlsx"'
-        }
-        return StreamingResponse(io.BytesIO(output.getvalue()), media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', headers=headers)
-
+        media_type = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        filename = f"export_{data_type}.xlsx"
+        content = output.getvalue()
     elif file_format == "pdf":
-        html_string = f"<h1>Rapport - {data_type.capitalize()}</h1>{df.to_html(index=False)}"
-        pdf_bytes = HTML(string=html_string).write_pdf()
-        headers = {
-            'Content-Disposition': f'attachment; filename="export_{data_type}.pdf"'
-        }
-        return StreamingResponse(io.BytesIO(pdf_bytes), media_type='application/pdf', headers=headers)
-
+        html = f"<h1>Rapport - {data_type.capitalize()}</h1>{df.to_html(index=False)}"
+        content = HTML(string=html).write_pdf()
+        media_type = 'application/pdf'
+        filename = f"export_{data_type}.pdf"
     else:
         raise HTTPException(status_code=400, detail="Format de fichier non valide.")
+
+    headers = {'Content-Disposition': f'attachment; filename="{filename}"'}
+    return StreamingResponse(io.BytesIO(content), media_type=media_type, headers=headers)

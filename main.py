@@ -11,7 +11,7 @@ from datetime import timedelta
 # Importations pour l'authentification
 from fastapi.security import OAuth2PasswordRequestForm
 import auth
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 # --- Base de données utilisateur "en dur" ---
 # Dans une vraie application, cela viendrait d'une base de données.
@@ -114,9 +114,16 @@ async def api_delete_produit(produit_id: int, db: Session = Depends(database.get
 # --- Endpoints pour les VENTES (protégés) ---
 @app.get("/api/ventes")
 async def api_get_ventes(db: Session = Depends(database.get_db), current_user: dict = Depends(auth.get_current_user)):
-    # Cette fonction doit être ajoutée à database.py
-    ventes = db.query(database.Vente).order_by(database.Vente.date.desc()).all()
-    return ventes
+    ventes_db = db.query(database.Vente).options(joinedload(database.Vente.produit)).order_by(database.Vente.date.desc()).all()
+    ventes_list = [
+        {
+            "produit_nom": v.produit.nom if v.produit else "Inconnu",
+            "quantite": v.quantite,
+            "prix_total": v.prix_total,
+            "date": v.date.isoformat()
+        } for v in ventes_db
+    ]
+    return JSONResponse(content=ventes_list)
 
 @app.post("/api/ventes")
 async def api_add_vente(vente: Vente, db: Session = Depends(database.get_db), current_user: dict = Depends(auth.get_current_user)):
@@ -130,9 +137,15 @@ async def api_add_vente(vente: Vente, db: Session = Depends(database.get_db), cu
 # --- Endpoints pour les PERTES (protégés) ---
 @app.get("/api/pertes")
 async def api_get_pertes(db: Session = Depends(database.get_db), current_user: dict = Depends(auth.get_current_user)):
-    # Cette fonction doit être ajoutée à database.py
-    pertes = db.query(database.Perte).order_by(database.Perte.date.desc()).all()
-    return pertes
+    pertes_db = db.query(database.Perte).options(joinedload(database.Perte.produit)).order_by(database.Perte.date.desc()).all()
+    pertes_list = [
+        {
+            "produit_nom": p.produit.nom if p.produit else "Inconnu",
+            "quantite": p.quantite,
+            "date": p.date.isoformat()
+        } for p in pertes_db
+    ]
+    return JSONResponse(content=pertes_list)
 
 @app.post("/api/pertes")
 async def api_add_perte(perte: Perte, db: Session = Depends(database.get_db), current_user: dict = Depends(auth.get_current_user)):

@@ -124,6 +124,41 @@ def add_perte(db: Session, produit_id: int, quantite: int):
     db.refresh(nouvelle_perte.produit)
     return nouvelle_perte
 
+def update_perte(db: Session, perte_id: int, new_produit_id: int, new_quantite: int):
+    perte_a_modifier = db.query(Perte).filter(Perte.id == perte_id).first()
+    if not perte_a_modifier:
+        raise ValueError("Perte non trouvée.")
+
+    ancien_produit = db.query(Produit).filter(Produit.id == perte_a_modifier.produit_id).first()
+    nouveau_produit = db.query(Produit).filter(Produit.id == new_produit_id).first()
+
+    if not nouveau_produit:
+        raise ValueError("Nouveau produit non trouvé.")
+
+    # Logique de mise à jour du stock
+    if ancien_produit.id == nouveau_produit.id:
+        # Le produit est le même, on ajuste juste la quantité
+        diff_quantite = new_quantite - perte_a_modifier.quantite
+        if ancien_produit.quantite < diff_quantite:
+            raise ValueError("Stock insuffisant pour la modification.")
+        ancien_produit.quantite -= diff_quantite
+    else:
+        # Le produit a changé, on restaure l'ancien stock et déduit du nouveau
+        if nouveau_produit.quantite < new_quantite:
+            raise ValueError("Stock insuffisant pour le nouveau produit.")
+        ancien_produit.quantite += perte_a_modifier.quantite
+        nouveau_produit.quantite -= new_quantite
+
+    # Mettre à jour la perte elle-même
+    perte_a_modifier.produit_id = new_produit_id
+    perte_a_modifier.quantite = new_quantite
+    perte_a_modifier.date = datetime.now(timezone.utc)
+
+    db.commit()
+    db.refresh(perte_a_modifier)
+    return perte_a_modifier
+
+
 def get_dashboard_kpis(db: Session):
     today = datetime.now(timezone.utc).date()
     ca_today = db.query(func.sum(Vente.prix_total)).filter(func.date(Vente.date) == today).scalar() or 0

@@ -54,6 +54,10 @@ class PerteBase(BaseModel):
 class PerteCreate(PerteBase):
     pass
 
+class PerteUpdate(PerteBase):
+    pass
+
+
 class Perte(PerteBase):
     id: int
     date: datetime
@@ -149,7 +153,18 @@ async def api_delete_produit(produit_id: int, current_user: dict = Depends(auth.
 @app.get("/api/ventes", response_model=List[Vente])
 async def api_get_ventes(current_user: dict = Depends(auth.get_current_user)):
     with database.get_db() as db:
-        return database.get_all_ventes(db)
+        ventes_db = database.get_all_ventes(db)
+        # Construire manuellement le modèle de réponse pour inclure le nom du produit
+        return [
+            Vente(
+                id=v.id,
+                produit_id=v.produit_id,
+                quantite=v.quantite,
+                prix_total=v.prix_total,
+                date=v.date,
+                produit_nom=v.produit.nom if v.produit else "Inconnu"
+            ) for v in ventes_db
+        ]
 
 @app.post("/api/ventes", response_model=Vente)
 async def api_add_vente(vente: VenteCreate, current_user: dict = Depends(auth.get_current_user)):
@@ -162,13 +177,30 @@ async def api_add_vente(vente: VenteCreate, current_user: dict = Depends(auth.ge
 @app.get("/api/pertes", response_model=List[Perte])
 async def api_get_pertes(current_user: dict = Depends(auth.get_current_user)):
     with database.get_db() as db:
-        return database.get_all_pertes(db)
+        pertes_db = database.get_all_pertes(db)
+        return [
+            Perte(
+                id=p.id,
+                produit_id=p.produit_id,
+                quantite=p.quantite,
+                date=p.date,
+                produit_nom=p.produit.nom if p.produit else "Inconnu"
+            ) for p in pertes_db
+        ]
 
 @app.post("/api/pertes", response_model=Perte)
 async def api_add_perte(perte: PerteCreate, current_user: dict = Depends(auth.get_current_user)):
     with database.get_db() as db:
         try:
             return database.add_perte(db, **perte.model_dump())
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e))
+
+@app.put("/api/pertes/{perte_id}", response_model=Perte)
+async def api_update_perte(perte_id: int, perte: PerteUpdate, current_user: dict = Depends(auth.get_current_user)):
+    with database.get_db() as db:
+        try:
+            return database.update_perte(db, perte_id, perte.produit_id, perte.quantite)
         except ValueError as e:
             raise HTTPException(status_code=400, detail=str(e))
 

@@ -237,6 +237,24 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('produit-modal').addEventListener('hidden.bs.modal', e => e.target.remove());
     }
 
+    function openPerteModal(perte, produits) {
+        let options = produits.map(p => `<option value="${p.id}" ${perte && p.id === perte.produit_id ? 'selected' : ''}>${p.nom} (Stock: ${p.quantite})</option>`).join('');
+        const modalHTML = `
+        <div class="modal fade" id="perte-modal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title">Modifier la perte</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body"><form id="perte-edit-form">
+                <input type="hidden" id="perte-id" value="${perte.id}">
+                <div class="mb-3"><label for="perte-produit-id" class="form-label">Produit</label><select class="form-select" id="perte-produit-id" required>${options}</select></div>
+                <div class="mb-3"><label for="perte-quantite" class="form-label">Quantité</label><input type="number" class="form-control" id="perte-quantite" required value="${perte.quantite}"></div>
+            </form></div>
+            <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button><button type="button" class="btn btn-primary" id="save-perte-btn">Enregistrer</button></div>
+        </div></div></div>`;
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+        const modal = new bootstrap.Modal(document.getElementById('perte-modal'));
+        modal.show();
+        document.getElementById('perte-modal').addEventListener('hidden.bs.modal', e => e.target.remove());
+    }
+
     async function loadVentesTab() {
         const produitsResponse = await secureFetch('/api/produits');
         const produits = await produitsResponse.json();
@@ -275,7 +293,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="col-md-2 d-flex align-items-end"><button type="submit" class="btn btn-danger w-100">Enregistrer</button></div>
             </div></form></div></div>
             <div class="d-flex justify-content-between align-items-center"><h2 class="h3">Historique des Pertes</h2><div class="btn-group"><button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown"><i class="bi bi-download"></i> Export</button><ul class="dropdown-menu dropdown-menu-end"><li><a class="dropdown-item export-btn" href="#" data-type="pertes" data-format="excel">Excel</a></li><li><a class="dropdown-item export-btn" href="#" data-type="pertes" data-format="pdf">PDF</a></li></ul></div></div>
-            <div class="table-responsive"><table class="table table-striped table-sm" id="pertes-table"><thead><tr><th>Produit</th><th>Quantité</th><th>Date</th></tr></thead><tbody></tbody></table></div>`;
+            <div class="table-responsive"><table class="table table-striped table-sm" id="pertes-table"><thead><tr><th>Produit</th><th>Quantité</th><th>Date</th><th>Actions</th></tr></thead><tbody></tbody></table></div>`;
 
         const pertesResponse = await secureFetch('/api/pertes');
         const pertes = await pertesResponse.json();
@@ -283,7 +301,7 @@ document.addEventListener('DOMContentLoaded', () => {
         tableBody.innerHTML = '';
         pertes.forEach(p => {
             const row = tableBody.insertRow();
-            row.innerHTML = `<td>${p.produit_nom}</td><td>${p.quantite}</td><td>${new Date(p.date).toLocaleString('fr-FR')}</td>`;
+            row.innerHTML = `<td>${p.produit_nom}</td><td>${p.quantite}</td><td>${new Date(p.date).toLocaleString('fr-FR')}</td><td><button class="btn btn-sm btn-warning edit-perte-btn" data-id="${p.id}"><i class="bi bi-pencil-square"></i></button></td>`;
         });
     }
 
@@ -366,6 +384,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const produits = await (await secureFetch('/api/produits')).json();
             openProduitModal(produits.find(p => p.id == id));
         }
+
+        if (target.closest('.edit-perte-btn')) {
+            const id = target.closest('.edit-perte-btn').dataset.id;
+            const pertes = await (await secureFetch('/api/pertes')).json();
+            const perte = pertes.find(p => p.id == id);
+            const produits = await (await secureFetch('/api/produits')).json();
+            openPerteModal(perte, produits);
+        }
         if (target.matches('.export-btn')) {
             event.preventDefault();
             const { type, format } = target.dataset;
@@ -399,6 +425,18 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = { produit_id: parseInt(form.elements['perte-produit-id'].value), quantite: parseInt(form.elements['perte-quantite'].value) };
             const response = await secureFetch('/api/pertes', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
             if (response.ok) loadPertesTab(); else { alert(`Erreur: ${(await response.json()).detail}`); }
+        }
+
+        if (form.id === 'perte-edit-form') {
+            const id = form.elements['perte-id'].value;
+            const data = { produit_id: parseInt(form.elements['perte-produit-id'].value), quantite: parseInt(form.elements['perte-quantite'].value) };
+            const response = await secureFetch(`/api/pertes/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+            if (response.ok) {
+                bootstrap.Modal.getInstance(document.getElementById('perte-modal')).hide();
+                loadPertesTab();
+            } else { 
+                alert(`Erreur: ${(await response.json()).detail}`); 
+            }
         }
     });
 

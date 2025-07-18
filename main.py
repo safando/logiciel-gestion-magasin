@@ -61,7 +61,7 @@ class PerteUpdate(PerteBase):
 class Perte(PerteBase):
     id: int
     date: datetime
-    produit_nom: Optional[str] = None
+    produit: Produit
     model_config = ConfigDict(from_attributes=True)
 
 class DashboardData(BaseModel):

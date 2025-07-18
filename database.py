@@ -121,6 +121,7 @@ def add_perte(db: Session, produit_id: int, quantite: int):
     db.add(nouvelle_perte)
     db.commit()
     db.refresh(nouvelle_perte)
+    # Recharger la relation pour un accès immédiat dans la réponse de l'API
     db.refresh(nouvelle_perte.produit)
     return nouvelle_perte
 
@@ -156,6 +157,8 @@ def update_perte(db: Session, perte_id: int, new_produit_id: int, new_quantite: 
 
     db.commit()
     db.refresh(perte_a_modifier)
+    # Recharger la relation pour un accès immédiat dans la réponse de l'API
+    db.refresh(perte_a_modifier.produit)
     return perte_a_modifier
 
 

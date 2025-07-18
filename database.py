@@ -125,6 +125,40 @@ def add_perte(db: Session, produit_id: int, quantite: int):
     db.refresh(nouvelle_perte.produit)
     return nouvelle_perte
 
+def update_vente(db: Session, vente_id: int, new_produit_id: int, new_quantite: int):
+    vente_a_modifier = db.query(Vente).filter(Vente.id == vente_id).first()
+    if not vente_a_modifier:
+        raise ValueError("Vente non trouvée.")
+
+    ancien_produit = db.query(Produit).filter(Produit.id == vente_a_modifier.produit_id).first()
+    nouveau_produit = db.query(Produit).filter(Produit.id == new_produit_id).first()
+
+    if not nouveau_produit:
+        raise ValueError("Nouveau produit non trouvé.")
+
+    # Logique de mise à jour du stock
+    if ancien_produit.id == nouveau_produit.id:
+        diff_quantite = new_quantite - vente_a_modifier.quantite
+        if ancien_produit.quantite < diff_quantite:
+            raise ValueError("Stock insuffisant pour la modification.")
+        ancien_produit.quantite -= diff_quantite
+    else:
+        if nouveau_produit.quantite < new_quantite:
+            raise ValueError("Stock insuffisant pour le nouveau produit.")
+        ancien_produit.quantite += vente_a_modifier.quantite
+        nouveau_produit.quantite -= new_quantite
+
+    # Mettre à jour la vente elle-même
+    vente_a_modifier.produit_id = new_produit_id
+    vente_a_modifier.quantite = new_quantite
+    vente_a_modifier.prix_total = nouveau_produit.prix_vente * new_quantite
+    vente_a_modifier.date = datetime.now(timezone.utc)
+
+    db.commit()
+    db.refresh(vente_a_modifier)
+    db.refresh(vente_a_modifier.produit)
+    return vente_a_modifier
+
 def update_perte(db: Session, perte_id: int, new_produit_id: int, new_quantite: int):
     perte_a_modifier = db.query(Perte).filter(Perte.id == perte_id).first()
     if not perte_a_modifier:

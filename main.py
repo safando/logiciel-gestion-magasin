@@ -40,6 +40,10 @@ class VenteBase(BaseModel):
 class VenteCreate(VenteBase):
     pass
 
+class VenteUpdate(VenteBase):
+    pass
+
+
 class Vente(VenteBase):
     id: int
     prix_total: float
@@ -160,6 +164,14 @@ async def api_add_vente(vente: VenteCreate, current_user: dict = Depends(auth.ge
     with database.get_db() as db:
         try:
             return database.add_vente(db, **vente.model_dump())
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e))
+
+@app.put("/api/ventes/{vente_id}", response_model=Vente)
+async def api_update_vente(vente_id: int, vente: VenteUpdate, current_user: dict = Depends(auth.get_current_user)):
+    with database.get_db() as db:
+        try:
+            return database.update_vente(db, vente_id, vente.produit_id, vente.quantite)
         except ValueError as e:
             raise HTTPException(status_code=400, detail=str(e))
 

@@ -1,4 +1,3 @@
-
 /*!
  * Color mode toggler for Bootstrap's docs (https://getbootstrap.com/)
  * Copyright 2011-2024 The Bootstrap Authors
@@ -324,9 +323,9 @@ document.addEventListener('DOMContentLoaded', () => {
         mainContent.innerHTML = `
             <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom"><h1 class="h2">Analyse Financière</h1></div>
             <div class="card mb-4"><div class="card-header">Sélectionner une période</div><div class="card-body"><div class="row">
-                <div class="col-md-5"><label for="start-date" class="form-label">Date de début</label><input type="date" class="form-control" id="start-date"></div>
-                <div class="col-md-5"><label for="end-date" class="form-label">Date de fin</label><input type="date" class="form-control" id="end-date"></div>
-                <div class="col-md-2 d-flex align-items-end"><button class="btn btn-primary w-100" id="run-analysis">Analyser</button></div>
+                <div class="col-md-5"><label for="start-date" class="form-label">Date de début</label><input type="date" id="start-date" class="form-control"></div>
+                <div class="col-md-5"><label for="end-date" class="form-label">Date de fin</label><input type="date" id="end-date" class="form-control"></div>
+                <div class="col-md-2 d-flex align-items-end"><button id="run-analysis" class="btn btn-primary w-100">Analyser</button></div>
             </div></div></div>
             <div class="row">
                 <div class="col-md-4"><div class="card text-white bg-primary mb-3"><div class="card-header">Chiffre d'Affaires</div><div class="card-body"><h5 class="card-title" id="ca-value">0.00 €</h5></div></div></div>
@@ -337,7 +336,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const today = new Date().toISOString().split('T')[0];
         const firstDayOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
-        document.getElementById('start-date').value = today;
+        document.getElementById('start-date').value = firstDayOfMonth;
         document.getElementById('end-date').value = today;
 
         let chart = null;
@@ -372,6 +371,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Clics
     document.addEventListener('click', async (event) => {
         const target = event.target;
+        const targetClosest = (selector) => target.closest(selector);
 
         if (target.matches('#sidebar .nav-link')) {
             event.preventDefault();
@@ -379,41 +379,39 @@ document.addEventListener('DOMContentLoaded', () => {
             target.classList.add('active');
             loadTabContent(target.dataset.tab);
         }
-        if (target.closest('#add-produit-btn')) openProduitModal();
-        if (target.id === 'save-produit-btn') {
-            const id = document.getElementById('produit-id').value;
-            const data = { nom: document.getElementById('produit-nom').value, prix_achat: parseFloat(document.getElementById('produit-prix-achat').value), prix_vente: parseFloat(document.getElementById('produit-prix-vente').value), quantite: parseInt(document.getElementById('produit-quantite').value) };
-            if (id) data.id = parseInt(id);
-            const response = await secureFetch('/api/produits', { method: id ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
-            if (response.ok) { bootstrap.Modal.getInstance(document.getElementById('produit-modal')).hide(); loadStockTab(); } else { alert(`Erreur: ${(await response.json()).detail}`); }
-        }
-        if (target.closest('.delete-btn')) {
-            const id = target.closest('.delete-btn').dataset.id;
+        if (targetClosest('#add-produit-btn')) openProduitModal();
+        
+        if (targetClosest('.delete-btn')) {
+            const id = targetClosest('.delete-btn').dataset.id;
             if (confirm("Êtes-vous sûr ?")) {
                 const response = await secureFetch(`/api/produits/${id}`, { method: 'DELETE' });
                 if (response.ok) loadStockTab();
             }
         }
-        if (target.closest('.edit-btn')) {
-            const id = target.closest('.edit-btn').dataset.id;
+        if (targetClosest('.edit-btn')) {
+            const id = targetClosest('.edit-btn').dataset.id;
             const produits = await (await secureFetch('/api/produits')).json();
             openProduitModal(produits.find(p => p.id == id));
         }
 
-        if (target.closest('.edit-perte-btn')) {
-            const id = target.closest('.edit-perte-btn').dataset.id;
-            const pertes = await (await secureFetch('/api/pertes')).json();
-            const perte = pertes.find(p => p.id == id);
-            const produits = await (await secureFetch('/api/produits')).json();
-            openPerteModal(perte, produits);
+        if (targetClosest('.edit-vente-btn')) {
+            const id = targetClosest('.edit-vente-btn').dataset.id;
+            const [ventes, produits] = await Promise.all([
+                secureFetch('/api/ventes').then(res => res.json()),
+                secureFetch('/api/produits').then(res => res.json())
+            ]);
+            const vente = ventes.find(v => v.id == id);
+            openVenteModal(vente, produits);
         }
 
-        if (target.closest('.edit-vente-btn')) {
-            const id = target.closest('.edit-vente-btn').dataset.id;
-            const ventes = await (await secureFetch('/api/ventes')).json();
-            const vente = ventes.find(v => v.id == id);
-            const produits = await (await secureFetch('/api/produits')).json();
-            openVenteModal(vente, produits);
+        if (targetClosest('.edit-perte-btn')) {
+            const id = targetClosest('.edit-perte-btn').dataset.id;
+            const [pertes, produits] = await Promise.all([
+                secureFetch('/api/pertes').then(res => res.json()),
+                secureFetch('/api/produits').then(res => res.json())
+            ]);
+            const perte = pertes.find(p => p.id == id);
+            openPerteModal(perte, produits);
         }
 
         if (target.matches('.export-btn')) {
@@ -428,6 +426,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 a.href = url;
                 a.download = `export_${type}.${format === 'excel' ? 'xlsx' : 'pdf'}`;
                 document.body.appendChild(a);
+                a.click();
                 window.URL.revokeObjectURL(url);
             }
         }
@@ -437,6 +436,14 @@ document.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('submit', async (event) => {
         event.preventDefault();
         const form = event.target;
+
+        if (form.id === 'produit-form') {
+            const id = form.elements['produit-id'].value;
+            const data = { nom: form.elements['produit-nom'].value, prix_achat: parseFloat(form.elements['produit-prix-achat'].value), prix_vente: parseFloat(form.elements['produit-prix-vente'].value), quantite: parseInt(form.elements['produit-quantite'].value) };
+            if (id) data.id = parseInt(id);
+            const response = await secureFetch('/api/produits', { method: id ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+            if (response.ok) { bootstrap.Modal.getInstance(document.getElementById('produit-modal')).hide(); loadStockTab(); } else { alert(`Erreur: ${(await response.json()).detail}`); }
+        }
 
         if (form.id === 'vente-form') {
             const data = { produit_id: parseInt(form.elements['vente-produit-id'].value), quantite: parseInt(form.elements['vente-quantite'].value) };
@@ -450,28 +457,18 @@ document.addEventListener('DOMContentLoaded', () => {
             if (response.ok) loadPertesTab(); else { alert(`Erreur: ${(await response.json()).detail}`); }
         }
 
-        if (form.id === 'perte-edit-form') {
-            const id = form.elements['perte-id'].value;
-            const data = { produit_id: parseInt(form.elements['perte-produit-id'].value), quantite: parseInt(form.elements['perte-quantite'].value) };
-            const response = await secureFetch(`/api/pertes/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
-            if (response.ok) {
-                bootstrap.Modal.getInstance(document.getElementById('perte-modal')).hide();
-                loadPertesTab();
-            } else { 
-                alert(`Erreur: ${(await response.json()).detail}`); 
-            }
-        }
-
         if (form.id === 'vente-edit-form') {
             const id = form.elements['vente-id'].value;
             const data = { produit_id: parseInt(form.elements['vente-produit-id'].value), quantite: parseInt(form.elements['vente-quantite'].value) };
             const response = await secureFetch(`/api/ventes/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
-            if (response.ok) {
-                bootstrap.Modal.getInstance(document.getElementById('vente-modal')).hide();
-                loadVentesTab();
-            } else { 
-                alert(`Erreur: ${(await response.json()).detail}`); 
-            }
+            if (response.ok) { bootstrap.Modal.getInstance(document.getElementById('vente-modal')).hide(); loadVentesTab(); } else { alert(`Erreur: ${(await response.json()).detail}`); }
+        }
+
+        if (form.id === 'perte-edit-form') {
+            const id = form.elements['perte-id'].value;
+            const data = { produit_id: parseInt(form.elements['perte-produit-id'].value), quantite: parseInt(form.elements['perte-quantite'].value) };
+            const response = await secureFetch(`/api/pertes/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+            if (response.ok) { bootstrap.Modal.getInstance(document.getElementById('perte-modal')).hide(); loadPertesTab(); } else { alert(`Erreur: ${(await response.json()).detail}`); }
         }
     });
 

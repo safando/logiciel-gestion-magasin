@@ -232,14 +232,19 @@ document.addEventListener('DOMContentLoaded', () => {
         const modalHTML = `
         <div class="modal fade" id="produit-modal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
             <div class="modal-header"><h5 class="modal-title">${produit ? 'Modifier le produit' : 'Ajouter un produit'}</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-            <div class="modal-body"><form id="produit-form">
-                <input type="hidden" id="produit-id" value="${produit ? produit.id : ''}">
-                <div class="mb-3"><label for="produit-nom" class="form-label">Nom</label><input type="text" class="form-control" id="produit-nom" required value="${produit ? produit.nom : ''}"></div>
-                <div class="mb-3"><label for="produit-prix-achat" class="form-label">Prix d'achat</label><input type="number" class="form-control" id="produit-prix-achat" required step="0.01" value="${produit ? produit.prix_achat : ''}"></div>
-                <div class="mb-3"><label for="produit-prix-vente" class="form-label">Prix de vente</label><input type="number" class="form-control" id="produit-prix-vente" required step="0.01" value="${produit ? produit.prix_vente : ''}"></div>
-                <div class="mb-3"><label for="produit-quantite" class="form-label">Quantité</label><input type="number" class="form-control" id="produit-quantite" required value="${produit ? produit.quantite : '1'}"></div>
-            </form></div>
-            <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button><button type="button" class="btn btn-primary" id="save-produit-btn">Enregistrer</button></div>
+            <form id="produit-form">
+                <div class="modal-body">
+                    <input type="hidden" id="produit-id" name="id" value="${produit ? produit.id : ''}">
+                    <div class="mb-3"><label for="produit-nom" class="form-label">Nom</label><input type="text" class="form-control" id="produit-nom" name="nom" required value="${produit ? produit.nom : ''}"></div>
+                    <div class="mb-3"><label for="produit-prix-achat" class="form-label">Prix d'achat</label><input type="number" class="form-control" id="produit-prix-achat" name="prix_achat" required step="0.01" value="${produit ? produit.prix_achat : ''}"></div>
+                    <div class="mb-3"><label for="produit-prix-vente" class="form-label">Prix de vente</label><input type="number" class="form-control" id="produit-prix-vente" name="prix_vente" required step="0.01" value="${produit ? produit.prix_vente : ''}"></div>
+                    <div class="mb-3"><label for="produit-quantite" class="form-label">Quantité</label><input type="number" class="form-control" id="produit-quantite" name="quantite" required value="${produit ? produit.quantite : '1'}"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Enregistrer</button>
+                </div>
+            </form>
         </div></div></div>`;
         document.body.insertAdjacentHTML('beforeend', modalHTML);
         const modal = new bootstrap.Modal(document.getElementById('produit-modal'));

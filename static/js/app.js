@@ -1,3 +1,4 @@
+
 /*!
  * Color mode toggler for Bootstrap's docs (https://getbootstrap.com/)
  * Copyright 2011-2024 The Bootstrap Authors
@@ -323,9 +324,9 @@ document.addEventListener('DOMContentLoaded', () => {
         mainContent.innerHTML = `
             <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom"><h1 class="h2">Analyse Financière</h1></div>
             <div class="card mb-4"><div class="card-header">Sélectionner une période</div><div class="card-body"><div class="row">
-                <div class="col-md-5"><label for="start-date" class="form-label">Date de début</label><input type="date" id="start-date" class="form-control"></div>
-                <div class="col-md-5"><label for="end-date" class="form-label">Date de fin</label><input type="date" id="end-date" class="form-control"></div>
-                <div class="col-md-2 d-flex align-items-end"><button id="run-analysis" class="btn btn-primary w-100">Analyser</button></div>
+                <div class="col-md-5"><label for="start-date" class="form-label">Date de début</label><input type="date" class="form-control" id="start-date"></div>
+                <div class="col-md-5"><label for="end-date" class="form-label">Date de fin</label><input type="date" class="form-control" id="end-date"></div>
+                <div class="col-md-2 d-flex align-items-end"><button class="btn btn-primary w-100" id="run-analysis">Analyser</button></div>
             </div></div></div>
             <div class="row">
                 <div class="col-md-4"><div class="card text-white bg-primary mb-3"><div class="card-header">Chiffre d'Affaires</div><div class="card-body"><h5 class="card-title" id="ca-value">0.00 €</h5></div></div></div>
@@ -336,7 +337,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const today = new Date().toISOString().split('T')[0];
         const firstDayOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
-        document.getElementById('start-date').value = firstDayOfMonth;
+        document.getElementById('start-date').value = today;
         document.getElementById('end-date').value = today;
 
         let chart = null;
@@ -427,7 +428,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 a.href = url;
                 a.download = `export_${type}.${format === 'excel' ? 'xlsx' : 'pdf'}`;
                 document.body.appendChild(a);
-                a.click();
                 window.URL.revokeObjectURL(url);
             }
         }

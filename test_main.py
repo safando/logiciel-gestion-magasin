@@ -61,4 +61,20 @@ def test_full_workflow(client: TestClient):
     assert p1_final["quantite"] == 100
     assert p2_final["quantite"] == 80
 
+    # 6. Suppression
+    # Suppression de la vente modifiée
+    res = client.delete(f"/api/ventes/{vente1_updated['id']}", headers=headers)
+    assert res.status_code == 200
+    # Suppression de la perte modifiée
+    res = client.delete(f"/api/pertes/{perte1_updated['id']}", headers=headers)
+    assert res.status_code == 200
+
+    # 7. Vérification finale des stocks après suppression
+    produits_res = client.get("/api/produits", headers=headers)
+    produits_final_2 = produits_res.json()
+    p1_final_2 = next(p for p in produits_final_2 if p["id"] == produit1["id"])
+    p2_final_2 = next(p for p in produits_final_2 if p["id"] == produit2["id"])
+    assert p1_final_2["quantite"] == 100 # Stock restauré
+    assert p2_final_2["quantite"] == 100 # Stock restauré
+
     print("\n>>> All workflow tests passed successfully.")

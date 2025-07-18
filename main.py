@@ -167,6 +167,14 @@ async def api_add_vente(vente: VenteCreate, current_user: dict = Depends(auth.ge
         except ValueError as e:
             raise HTTPException(status_code=400, detail=str(e))
 
+@app.delete("/api/ventes/{vente_id}")
+async def api_delete_vente(vente_id: int, current_user: dict = Depends(auth.get_current_user)):
+    with database.get_db() as db:
+        deleted = database.delete_vente(db, vente_id)
+        if not deleted:
+            raise HTTPException(status_code=404, detail="Vente non trouvée")
+        return {"status": "success", "message": "Vente supprimée"}
+
 @app.put("/api/ventes/{vente_id}", response_model=Vente)
 async def api_update_vente(vente_id: int, vente: VenteUpdate, current_user: dict = Depends(auth.get_current_user)):
     with database.get_db() as db:
@@ -195,6 +203,14 @@ async def api_update_perte(perte_id: int, perte: PerteUpdate, current_user: dict
             return database.update_perte(db, perte_id, perte.produit_id, perte.quantite)
         except ValueError as e:
             raise HTTPException(status_code=400, detail=str(e))
+
+@app.delete("/api/pertes/{perte_id}")
+async def api_delete_perte(perte_id: int, current_user: dict = Depends(auth.get_current_user)):
+    with database.get_db() as db:
+        deleted = database.delete_perte(db, perte_id)
+        if not deleted:
+            raise HTTPException(status_code=404, detail="Perte non trouvée")
+        return {"status": "success", "message": "Perte supprimée"}
 
 @app.get("/api/dashboard", response_model=DashboardData)
 async def api_get_dashboard_kpis(current_user: dict = Depends(auth.get_current_user)):

@@ -159,6 +159,24 @@ def update_vente(db: Session, vente_id: int, new_produit_id: int, new_quantite: 
     db.refresh(vente_a_modifier.produit)
     return vente_a_modifier
 
+def delete_vente(db: Session, vente_id: int):
+    vente = db.query(Vente).filter(Vente.id == vente_id).first()
+    if vente:
+        produit = vente.produit
+        produit.quantite += vente.quantite
+        db.delete(vente)
+        db.commit()
+    return vente
+
+def delete_perte(db: Session, perte_id: int):
+    perte = db.query(Perte).filter(Perte.id == perte_id).first()
+    if perte:
+        produit = perte.produit
+        produit.quantite += perte.quantite
+        db.delete(perte)
+        db.commit()
+    return perte
+
 def update_perte(db: Session, perte_id: int, new_produit_id: int, new_quantite: int):
     perte_a_modifier = db.query(Perte).filter(Perte.id == perte_id).first()
     if not perte_a_modifier:

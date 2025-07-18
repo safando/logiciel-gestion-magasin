@@ -256,7 +256,7 @@ document.addEventListener('DOMContentLoaded', () => {
         tableBody.innerHTML = '';
         ventes.forEach(v => {
             const row = tableBody.insertRow();
-            row.innerHTML = `<td>${v.produit.nom}</td><td>${v.quantite}</td><td>${v.prix_total.toFixed(2)} €</td><td>${new Date(v.date).toLocaleString('fr-FR')}</td><td><button class="btn btn-sm btn-warning edit-vente-btn" data-id="${v.id}"><i class="bi bi-pencil-square"></i></button></td>`;
+            row.innerHTML = `<td>${v.produit.nom}</td><td>${v.quantite}</td><td>${v.prix_total.toFixed(2)} €</td><td>${new Date(v.date).toLocaleString('fr-FR')}</td><td><button class="btn btn-sm btn-warning edit-vente-btn" data-id="${v.id}"><i class="bi bi-pencil-square"></i></button> <button class="btn btn-sm btn-danger delete-vente-btn" data-id="${v.id}"><i class="bi bi-trash"></i></button></td>`;
         });
     }
 
@@ -297,7 +297,7 @@ document.addEventListener('DOMContentLoaded', () => {
         tableBody.innerHTML = '';
         pertes.forEach(p => {
             const row = tableBody.insertRow();
-            row.innerHTML = `<td>${p.produit.nom}</td><td>${p.quantite}</td><td>${new Date(p.date).toLocaleString('fr-FR')}</td><td><button class="btn btn-sm btn-warning edit-perte-btn" data-id="${p.id}"><i class="bi bi-pencil-square"></i></button></td>`;
+            row.innerHTML = `<td>${p.produit.nom}</td><td>${p.quantite}</td><td>${new Date(p.date).toLocaleString('fr-FR')}</td><td><button class="btn btn-sm btn-warning edit-perte-btn" data-id="${p.id}"><i class="bi bi-pencil-square"></i></button> <button class="btn btn-sm btn-danger delete-perte-btn" data-id="${p.id}"><i class="bi bi-trash"></i></button></td>`;
         });
     }
 
@@ -412,6 +412,22 @@ document.addEventListener('DOMContentLoaded', () => {
             ]);
             const perte = pertes.find(p => p.id == id);
             openPerteModal(perte, produits);
+        }
+
+        if (targetClosest('.delete-vente-btn')) {
+            const id = targetClosest('.delete-vente-btn').dataset.id;
+            if (confirm("Êtes-vous sûr ?")) {
+                const response = await secureFetch(`/api/ventes/${id}`, { method: 'DELETE' });
+                if (response.ok) loadVentesTab();
+            }
+        }
+
+        if (targetClosest('.delete-perte-btn')) {
+            const id = targetClosest('.delete-perte-btn').dataset.id;
+            if (confirm("Êtes-vous sûr ?")) {
+                const response = await secureFetch(`/api/pertes/${id}`, { method: 'DELETE' });
+                if (response.ok) loadPertesTab();
+            }
         }
 
         if (target.matches('.export-btn')) {

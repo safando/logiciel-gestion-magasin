@@ -378,6 +378,13 @@ document.addEventListener('DOMContentLoaded', () => {
             navLinks.forEach(l => l.classList.remove('active'));
             target.classList.add('active');
             loadTabContent(target.dataset.tab);
+
+            // Fermer la barre latérale sur mobile après un clic
+            const sidebar = document.getElementById('sidebar');
+            if (sidebar.classList.contains('show')) {
+                const sidebarToggler = new bootstrap.Collapse(sidebar);
+                sidebarToggler.hide();
+            }
         }
         if (targetClosest('#add-produit-btn')) openProduitModal();
         

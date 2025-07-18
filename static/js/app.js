@@ -202,6 +202,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
                 <h1 class="h2">Gestion du Stock</h1>
                 <div class="btn-toolbar mb-2 mb-md-0">
+                    <input type="text" id="stock-search" class="form-control form-control-sm me-2" placeholder="Rechercher...">
                     <button type="button" class="btn btn-sm btn-outline-primary" id="add-produit-btn"><i class="bi bi-plus-circle"></i> Ajouter un produit</button>
                     <div class="btn-group ms-2"><button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown"><i class="bi bi-download"></i> Export</button><ul class="dropdown-menu"><li><a class="dropdown-item export-btn" href="#" data-type="stock" data-format="excel">Excel</a></li><li><a class="dropdown-item export-btn" href="#" data-type="stock" data-format="pdf">PDF</a></li></ul></div>
                 </div>
@@ -215,6 +216,15 @@ document.addEventListener('DOMContentLoaded', () => {
         produits.forEach(p => {
             const row = tableBody.insertRow();
             row.innerHTML = `<td>${p.nom}</td><td>${p.prix_achat.toFixed(2)} €</td><td>${p.prix_vente.toFixed(2)} €</td><td>${p.quantite}</td><td><button class="btn btn-sm btn-warning edit-btn" data-id="${p.id}"><i class="bi bi-pencil-square"></i></button> <button class="btn btn-sm btn-danger delete-btn" data-id="${p.id}"><i class="bi bi-trash"></i></button></td>`;
+        });
+
+        // Logique de recherche
+        document.getElementById('stock-search').addEventListener('keyup', (e) => {
+            const searchTerm = e.target.value.toLowerCase();
+            tableBody.querySelectorAll('tr').forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(searchTerm) ? '' : 'none';
+            });
         });
     }
 
@@ -248,7 +258,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="col-md-4 mb-3"><label for="vente-quantite" class="form-label">Quantité</label><input type="number" class="form-control" id="vente-quantite" value="1" min="1" required></div>
                 <div class="col-md-2 d-flex align-items-end"><button type="submit" class="btn btn-primary w-100">Enregistrer</button></div>
             </div></form></div></div>
-            <div class="d-flex justify-content-between align-items-center"><h2 class="h3">Historique des Ventes</h2><div class="btn-group"><button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown"><i class="bi bi-download"></i> Export</button><ul class="dropdown-menu dropdown-menu-end"><li><a class="dropdown-item export-btn" href="#" data-type="ventes" data-format="excel">Excel</a></li><li><a class="dropdown-item export-btn" href="#" data-type="ventes" data-format="pdf">PDF</a></li></ul></div></div>
+            <div class="d-flex justify-content-between align-items-center"><h2 class="h3">Historique des Ventes</h2><input type="text" id="ventes-search" class="form-control form-control-sm mx-3" placeholder="Rechercher..."><div class="btn-group"><button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown"><i class="bi bi-download"></i> Export</button><ul class="dropdown-menu dropdown-menu-end"><li><a class="dropdown-item export-btn" href="#" data-type="ventes" data-format="excel">Excel</a></li><li><a class="dropdown-item export-btn" href="#" data-type="ventes" data-format="pdf">PDF</a></li></ul></div></div>
             <div class="table-responsive"><table class="table table-striped table-sm" id="ventes-table"><thead><tr><th>Produit</th><th>Quantité</th><th>Prix Total</th><th>Date</th><th>Actions</th></tr></thead><tbody></tbody></table></div>`;
 
         const ventes = await (await secureFetch('/api/ventes')).json();
@@ -257,6 +267,15 @@ document.addEventListener('DOMContentLoaded', () => {
         ventes.forEach(v => {
             const row = tableBody.insertRow();
             row.innerHTML = `<td>${v.produit.nom}</td><td>${v.quantite}</td><td>${v.prix_total.toFixed(2)} €</td><td>${new Date(v.date).toLocaleString('fr-FR')}</td><td><button class="btn btn-sm btn-warning edit-vente-btn" data-id="${v.id}"><i class="bi bi-pencil-square"></i></button> <button class="btn btn-sm btn-danger delete-vente-btn" data-id="${v.id}"><i class="bi bi-trash"></i></button></td>`;
+        });
+
+        // Logique de recherche
+        document.getElementById('ventes-search').addEventListener('keyup', (e) => {
+            const searchTerm = e.target.value.toLowerCase();
+            tableBody.querySelectorAll('tr').forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(searchTerm) ? '' : 'none';
+            });
         });
     }
 
@@ -289,7 +308,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="col-md-4 mb-3"><label for="perte-quantite" class="form-label">Quantité</label><input type="number" class="form-control" id="perte-quantite" value="1" min="1" required></div>
                 <div class="col-md-2 d-flex align-items-end"><button type="submit" class="btn btn-danger w-100">Enregistrer</button></div>
             </div></form></div></div>
-            <div class="d-flex justify-content-between align-items-center"><h2 class="h3">Historique des Pertes</h2><div class="btn-group"><button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown"><i class="bi bi-download"></i> Export</button><ul class="dropdown-menu dropdown-menu-end"><li><a class="dropdown-item export-btn" href="#" data-type="pertes" data-format="excel">Excel</a></li><li><a class="dropdown-item export-btn" href="#" data-type="pertes" data-format="pdf">PDF</a></li></ul></div></div>
+            <div class="d-flex justify-content-between align-items-center"><h2 class="h3">Historique des Pertes</h2><input type="text" id="pertes-search" class="form-control form-control-sm mx-3" placeholder="Rechercher..."><div class="btn-group"><button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown"><i class="bi bi-download"></i> Export</button><ul class="dropdown-menu dropdown-menu-end"><li><a class="dropdown-item export-btn" href="#" data-type="pertes" data-format="excel">Excel</a></li><li><a class="dropdown-item export-btn" href="#" data-type="pertes" data-format="pdf">PDF</a></li></ul></div></div>
             <div class="table-responsive"><table class="table table-striped table-sm" id="pertes-table"><thead><tr><th>Produit</th><th>Quantité</th><th>Date</th><th>Actions</th></tr></thead><tbody></tbody></table></div>`;
 
         const pertes = await (await secureFetch('/api/pertes')).json();
@@ -298,6 +317,15 @@ document.addEventListener('DOMContentLoaded', () => {
         pertes.forEach(p => {
             const row = tableBody.insertRow();
             row.innerHTML = `<td>${p.produit.nom}</td><td>${p.quantite}</td><td>${new Date(p.date).toLocaleString('fr-FR')}</td><td><button class="btn btn-sm btn-warning edit-perte-btn" data-id="${p.id}"><i class="bi bi-pencil-square"></i></button> <button class="btn btn-sm btn-danger delete-perte-btn" data-id="${p.id}"><i class="bi bi-trash"></i></button></td>`;
+        });
+
+        // Logique de recherche
+        document.getElementById('pertes-search').addEventListener('keyup', (e) => {
+            const searchTerm = e.target.value.toLowerCase();
+            tableBody.querySelectorAll('tr').forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(searchTerm) ? '' : 'none';
+            });
         });
     }
 

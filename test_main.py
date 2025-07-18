@@ -67,4 +67,11 @@ def test_full_workflow(client: TestClient):
     assert p1_final["quantite"] == 50 # Stock restauré
     assert p2_final["quantite"] == 28 # 30 - 2
 
+    # 7. Vérifier que l'onglet des pertes est accessible et renvoie les bonnes données
+    response = client.get("/api/pertes", headers=headers)
+    assert response.status_code == 200
+    pertes_final = response.json()
+    assert len(pertes_final) == 1
+    assert pertes_final[0]["produit"]["nom"] == produit2["nom"]
+
     print("\n>>> Test de workflow complet réussi. La logique de mise à jour des pertes et des stocks est correcte.")

@@ -238,7 +238,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function openPerteModal(perte, produits) {
-        let options = produits.map(p => `<option value="${p.id}" ${perte && p.id === perte.produit_id ? 'selected' : ''}>${p.nom} (Stock: ${p.quantite})</option>`).join('');
+        let options = produits.map(p => `<option value="${p.id}" ${perte && p.id === perte.produit.id ? 'selected' : ''}>${p.nom} (Stock: ${p.quantite})</option>`).join('');
         const modalHTML = `
         <div class="modal fade" id="perte-modal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
             <div class="modal-header"><h5 class="modal-title">Modifier la perte</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
@@ -428,8 +428,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (form.id === 'perte-edit-form') {
-            const id = form.elements['perte-id'].value;
-            const data = { produit_id: parseInt(form.elements['perte-produit-id'].value), quantite: parseInt(form.elements['perte-quantite'].value) };
+            if (target.id === 'save-perte-btn') {
+            const id = document.getElementById('perte-id').value;
+            const data = { produit_id: parseInt(document.getElementById('perte-produit-id').value), quantite: parseInt(document.getElementById('perte-quantite').value) };
             const response = await secureFetch(`/api/pertes/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
             if (response.ok) {
                 bootstrap.Modal.getInstance(document.getElementById('perte-modal')).hide();
@@ -437,6 +438,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } else { 
                 alert(`Erreur: ${(await response.json()).detail}`); 
             }
+        }
         }
     });
 

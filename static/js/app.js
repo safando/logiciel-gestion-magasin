@@ -421,13 +421,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (targetClosest('#add-produit-btn')) openProduitModal();
         
-        if (targetClosest('.delete-btn')) {
-            const id = targetClosest('.delete-btn').dataset.id;
-            if (confirm("Êtes-vous sûr ?")) {
-                const response = await secureFetch(`/api/produits/${id}`, { method: 'DELETE' });
-                if (response.ok) loadStockTab();
-            }
-        }
         if (targetClosest('.edit-btn')) {
             const id = targetClosest('.edit-btn').dataset.id;
             const produits = await (await secureFetch('/api/produits')).json();
@@ -494,11 +487,25 @@ document.addEventListener('DOMContentLoaded', () => {
         const form = event.target;
 
         if (form.id === 'produit-form') {
-            const id = form.elements['produit-id'].value;
-            const data = { nom: form.elements['produit-nom'].value, prix_achat: parseFloat(form.elements['produit-prix-achat'].value), prix_vente: parseFloat(form.elements['produit-prix-vente'].value), quantite: parseInt(form.elements['produit-quantite'].value) };
+            const id = form.elements['id'].value;
+            const data = { 
+                nom: form.elements['nom'].value, 
+                prix_achat: parseFloat(form.elements['prix_achat'].value), 
+                prix_vente: parseFloat(form.elements['prix_vente'].value), 
+                quantite: parseInt(form.elements['quantite'].value) 
+            };
             if (id) data.id = parseInt(id);
-            const response = await secureFetch('/api/produits', { method: id ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
-            if (response.ok) { bootstrap.Modal.getInstance(document.getElementById('produit-modal')).hide(); loadStockTab(); } else { alert(`Erreur: ${(await response.json()).detail}`); }
+            const response = await secureFetch('/api/produits', { 
+                method: id ? 'PUT' : 'POST', 
+                headers: { 'Content-Type': 'application/json' }, 
+                body: JSON.stringify(data) 
+            });
+            if (response.ok) { 
+                bootstrap.Modal.getInstance(document.getElementById('produit-modal')).hide(); 
+                loadStockTab(); 
+            } else { 
+                alert(`Erreur: ${(await response.json()).detail}`); 
+            }
         }
 
         if (form.id === 'vente-form') {

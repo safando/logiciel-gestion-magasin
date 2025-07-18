@@ -289,12 +289,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const modalHTML = `
         <div class="modal fade" id="vente-modal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
             <div class="modal-header"><h5 class="modal-title">Modifier la vente</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-            <div class="modal-body"><form id="vente-edit-form">
-                <input type="hidden" id="vente-id" name="id" value="${vente.id}">
-                <div class="mb-3"><label for="vente-produit-id" class="form-label">Produit</label><select class="form-select" id="vente-produit-id" name="produit_id" required>${options}</select></div>
-                <div class="mb-3"><label for="vente-quantite" class="form-label">Quantité</label><input type="number" class="form-control" id="vente-quantite" name="quantite" required value="${vente.quantite}"></div>
-            </form></div>
-            <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button><button type="submit" class="btn btn-primary">Enregistrer</button></div>
+            <form id="vente-edit-form">
+                <div class="modal-body">
+                    <input type="hidden" name="id" value="${vente.id}">
+                    <div class="mb-3"><label for="vente-produit-id" class="form-label">Produit</label><select class="form-select" name="produit_id" required>${options}</select></div>
+                    <div class="mb-3"><label for="vente-quantite" class="form-label">Quantité</label><input type="number" class="form-control" name="quantite" required value="${vente.quantite}"></div>
+                </div>
+                <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button><button type="submit" class="btn btn-primary">Enregistrer</button></div>
+            </form>
         </div></div></div>`;
         document.body.insertAdjacentHTML('beforeend', modalHTML);
         const modal = new bootstrap.Modal(document.getElementById('vente-modal'));
@@ -339,12 +341,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const modalHTML = `
         <div class="modal fade" id="perte-modal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
             <div class="modal-header"><h5 class="modal-title">Modifier la perte</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-            <div class="modal-body"><form id="perte-edit-form">
-                <input type="hidden" id="perte-id" name="id" value="${perte.id}">
-                <div class="mb-3"><label for="perte-produit-id" class="form-label">Produit</label><select class="form-select" id="perte-produit-id" name="produit_id" required>${options}</select></div>
-                <div class="mb-3"><label for="perte-quantite" class="form-label">Quantité</label><input type="number" class="form-control" id="perte-quantite" name="quantite" required value="${perte.quantite}"></div>
-            </form></div>
-            <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button><button type="submit" class="btn btn-primary">Enregistrer</button></div>
+            <form id="perte-edit-form">
+                <div class="modal-body">
+                    <input type="hidden" name="id" value="${perte.id}">
+                    <div class="mb-3"><label for="perte-produit-id" class="form-label">Produit</label><select class="form-select" name="produit_id" required>${options}</select></div>
+                    <div class="mb-3"><label for="perte-quantite" class="form-label">Quantité</label><input type="number" class="form-control" name="quantite" required value="${perte.quantite}"></div>
+                </div>
+                <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button><button type="submit" class="btn btn-primary">Enregistrer</button></div>
+            </form>
         </div></div></div>`;
         document.body.insertAdjacentHTML('beforeend', modalHTML);
         const modal = new bootstrap.Modal(document.getElementById('perte-modal'));

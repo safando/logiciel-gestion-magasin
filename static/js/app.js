@@ -276,7 +276,7 @@ document.addEventListener('DOMContentLoaded', () => {
         tableBody.innerHTML = '';
         ventes.forEach(v => {
             const row = tableBody.insertRow();
-            row.innerHTML = `<td>${v.produit_nom}</td><td>${v.quantite}</td><td>${v.prix_total.toFixed(2)} €</td><td>${new Date(v.date).toLocaleString('fr-FR')}</td>`;
+            row.innerHTML = `<td>${v.produit.nom}</td><td>${v.quantite}</td><td>${v.prix_total.toFixed(2)} €</td><td>${new Date(v.date).toLocaleString('fr-FR')}</td>`;
         });
     }
 
@@ -301,7 +301,7 @@ document.addEventListener('DOMContentLoaded', () => {
         tableBody.innerHTML = '';
         pertes.forEach(p => {
             const row = tableBody.insertRow();
-            row.innerHTML = `<td>${p.produit_nom}</td><td>${p.quantite}</td><td>${new Date(p.date).toLocaleString('fr-FR')}</td><td><button class="btn btn-sm btn-warning edit-perte-btn" data-id="${p.id}"><i class="bi bi-pencil-square"></i></button></td>`;
+            row.innerHTML = `<td>${p.produit.nom}</td><td>${p.quantite}</td><td>${new Date(p.date).toLocaleString('fr-FR')}</td><td><button class="btn btn-sm btn-warning edit-perte-btn" data-id="${p.id}"><i class="bi bi-pencil-square"></i></button></td>`;
         });
     }
 

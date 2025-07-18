@@ -234,7 +234,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="modal-header"><h5 class="modal-title">${produit ? 'Modifier le produit' : 'Ajouter un produit'}</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
             <form id="produit-form">
                 <div class="modal-body">
-                    <input type="hidden" id="produit-id" name="id" value="${produit ? produit.id : ''}">
+                    <input type="hidden" name="id" value="${produit ? produit.id : ''}">
                     <div class="mb-3"><label for="produit-nom" class="form-label">Nom</label><input type="text" class="form-control" id="produit-nom" name="nom" required value="${produit ? produit.nom : ''}"></div>
                     <div class="mb-3"><label for="produit-prix-achat" class="form-label">Prix d'achat</label><input type="number" class="form-control" id="produit-prix-achat" name="prix_achat" required step="0.01" value="${produit ? produit.prix_achat : ''}"></div>
                     <div class="mb-3"><label for="produit-prix-vente" class="form-label">Prix de vente</label><input type="number" class="form-control" id="produit-prix-vente" name="prix_vente" required step="0.01" value="${produit ? produit.prix_vente : ''}"></div>
@@ -290,11 +290,11 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="modal fade" id="vente-modal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
             <div class="modal-header"><h5 class="modal-title">Modifier la vente</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
             <div class="modal-body"><form id="vente-edit-form">
-                <input type="hidden" id="vente-id" value="${vente.id}">
-                <div class="mb-3"><label for="vente-produit-id" class="form-label">Produit</label><select class="form-select" id="vente-produit-id" required>${options}</select></div>
-                <div class="mb-3"><label for="vente-quantite" class="form-label">Quantité</label><input type="number" class="form-control" id="vente-quantite" required value="${vente.quantite}"></div>
+                <input type="hidden" id="vente-id" name="id" value="${vente.id}">
+                <div class="mb-3"><label for="vente-produit-id" class="form-label">Produit</label><select class="form-select" id="vente-produit-id" name="produit_id" required>${options}</select></div>
+                <div class="mb-3"><label for="vente-quantite" class="form-label">Quantité</label><input type="number" class="form-control" id="vente-quantite" name="quantite" required value="${vente.quantite}"></div>
             </form></div>
-            <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button><button type="button" class="btn btn-primary" id="save-vente-btn">Enregistrer</button></div>
+            <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button><button type="submit" class="btn btn-primary">Enregistrer</button></div>
         </div></div></div>`;
         document.body.insertAdjacentHTML('beforeend', modalHTML);
         const modal = new bootstrap.Modal(document.getElementById('vente-modal'));
@@ -340,11 +340,11 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="modal fade" id="perte-modal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
             <div class="modal-header"><h5 class="modal-title">Modifier la perte</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
             <div class="modal-body"><form id="perte-edit-form">
-                <input type="hidden" id="perte-id" value="${perte.id}">
-                <div class="mb-3"><label for="perte-produit-id" class="form-label">Produit</label><select class="form-select" id="perte-produit-id" required>${options}</select></div>
-                <div class="mb-3"><label for="perte-quantite" class="form-label">Quantité</label><input type="number" class="form-control" id="perte-quantite" required value="${perte.quantite}"></div>
+                <input type="hidden" id="perte-id" name="id" value="${perte.id}">
+                <div class="mb-3"><label for="perte-produit-id" class="form-label">Produit</label><select class="form-select" id="perte-produit-id" name="produit_id" required>${options}</select></div>
+                <div class="mb-3"><label for="perte-quantite" class="form-label">Quantité</label><input type="number" class="form-control" id="perte-quantite" name="quantite" required value="${perte.quantite}"></div>
             </form></div>
-            <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button><button type="button" class="btn btn-primary" id="save-perte-btn">Enregistrer</button></div>
+            <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button><button type="submit" class="btn btn-primary">Enregistrer</button></div>
         </div></div></div>`;
         document.body.insertAdjacentHTML('beforeend', modalHTML);
         const modal = new bootstrap.Modal(document.getElementById('perte-modal'));
@@ -411,16 +411,16 @@ document.addEventListener('DOMContentLoaded', () => {
             navLinks.forEach(l => l.classList.remove('active'));
             target.classList.add('active');
             loadTabContent(target.dataset.tab);
-
-            // Fermer la barre latérale sur mobile après un clic
-            const sidebar = document.getElementById('sidebar');
-            if (sidebar.classList.contains('show')) {
-                const sidebarToggler = new bootstrap.Collapse(sidebar);
-                sidebarToggler.hide();
-            }
         }
         if (targetClosest('#add-produit-btn')) openProduitModal();
         
+        if (targetClosest('.delete-btn')) {
+            const id = targetClosest('.delete-btn').dataset.id;
+            if (confirm("Êtes-vous sûr ?")) {
+                const response = await secureFetch(`/api/produits/${id}`, { method: 'DELETE' });
+                if (response.ok) loadStockTab();
+            }
+        }
         if (targetClosest('.edit-btn')) {
             const id = targetClosest('.edit-btn').dataset.id;
             const produits = await (await secureFetch('/api/produits')).json();
@@ -521,15 +521,15 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (form.id === 'vente-edit-form') {
-            const id = form.elements['vente-id'].value;
-            const data = { produit_id: parseInt(form.elements['vente-produit-id'].value), quantite: parseInt(form.elements['vente-quantite'].value) };
+            const id = form.elements['id'].value;
+            const data = { produit_id: parseInt(form.elements['produit_id'].value), quantite: parseInt(form.elements['quantite'].value) };
             const response = await secureFetch(`/api/ventes/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
             if (response.ok) { bootstrap.Modal.getInstance(document.getElementById('vente-modal')).hide(); loadVentesTab(); } else { alert(`Erreur: ${(await response.json()).detail}`); }
         }
 
         if (form.id === 'perte-edit-form') {
-            const id = form.elements['perte-id'].value;
-            const data = { produit_id: parseInt(form.elements['perte-produit-id'].value), quantite: parseInt(form.elements['perte-quantite'].value) };
+            const id = form.elements['id'].value;
+            const data = { produit_id: parseInt(form.elements['produit_id'].value), quantite: parseInt(form.elements['quantite'].value) };
             const response = await secureFetch(`/api/pertes/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
             if (response.ok) { bootstrap.Modal.getInstance(document.getElementById('perte-modal')).hide(); loadPertesTab(); } else { alert(`Erreur: ${(await response.json()).detail}`); }
         }

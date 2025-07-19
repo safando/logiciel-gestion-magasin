@@ -309,7 +309,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="col-md-4"><div class="card text-white bg-success mb-3"><div class="card-header">Bénéfice Brut</div><div class="card-body"><h5 class="card-title" id="benefice-value">0.00 €</h5></div></div></div>
             </div>
             <div class="card"><div class="card-header">Évolution du Chiffre d'Affaires</div><div class="card-body"><canvas id="ca-chart"></canvas></div></div>
-
             <div class="row mt-4">
                 <div class="col-md-6"><div class="card"><div class="card-header">Top 5 Produits Rentables</div><div class="card-body"><canvas id="profit-chart"></canvas></div></div></div>
                 <div class="col-md-6"><div class="card"><div class="card-header">Top 5 Produits Perdus</div><div class="card-body"><canvas id="loss-chart"></canvas></div></div></div>
@@ -321,7 +320,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('start-date').value = firstDayOfMonth;
         document.getElementById('end-date').value = today;
 
-        let chart = null;
+        let chart, profitChart, lossChart;
 
         async function runAnalysis() {
             const startDate = document.getElementById('start-date').value;
@@ -335,16 +334,15 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('cogs-value').textContent = `${data.cogs.toFixed(2)} €`;
             document.getElementById('benefice-value').textContent = `${data.benefice.toFixed(2)} €`;
 
-            const ctx = document.getElementById('ca-chart').getContext('2d');
             if(chart) chart.destroy();
-            chart = new Chart(ctx, {
+            chart = new Chart(document.getElementById('ca-chart').getContext('2d'), {
                 type: 'bar',
                 data: { labels: data.graph_data.map(d => d.jour), datasets: [{ label: 'Chiffre Affaires par Jour', data: data.graph_data.map(d => d.ca_jour), backgroundColor: 'rgba(54, 162, 235, 0.6)' }] },
                 options: { scales: { y: { beginAtZero: true } } }
             });
 
-            const profitCtx = document.getElementById('profit-chart').getContext('2d');
-            new Chart(profitCtx, {
+            if(profitChart) profitChart.destroy();
+            profitChart = new Chart(document.getElementById('profit-chart').getContext('2d'), {
                 type: 'pie',
                 data: { 
                     labels: data.top_profitable_products.map(p => p.nom),
@@ -352,8 +350,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
 
-            const lossCtx = document.getElementById('loss-chart').getContext('2d');
-            new Chart(lossCtx, {
+            if(lossChart) lossChart.destroy();
+            lossChart = new Chart(document.getElementById('loss-chart').getContext('2d'), {
                 type: 'doughnut',
                 data: { 
                     labels: data.top_lost_products.map(p => p.nom),

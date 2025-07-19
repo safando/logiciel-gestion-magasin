@@ -366,6 +366,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- MODAL LOGIC ---
 
+    const handleFormSubmit = async (url, method, data, modalId, successCallback) => {
+        try {
+            const response = await secureFetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+            if (response.ok) {
+                if (modalId) {
+                    const modalInstance = bootstrap.Modal.getInstance(document.getElementById(modalId));
+                    if (modalInstance) {
+                        modalInstance.hide();
+                    }
+                }
+                successCallback();
+                showToast('Opération réussie.');
+            } else {
+                const error = await response.json();
+                showToast(`Erreur: ${error.detail}`, 'error');
+            }
+        } catch (error) {
+            showToast('Erreur réseau.', 'error');
+        }
+    };
+
     function openProduitModal(produit = null) {
         const modalHTML = `
         <div class="modal fade" id="produit-modal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
@@ -382,9 +403,28 @@ document.addEventListener('DOMContentLoaded', () => {
             </form>
         </div></div></div>`;
         document.body.insertAdjacentHTML('beforeend', modalHTML);
-        const modal = new bootstrap.Modal(document.getElementById('produit-modal'));
+
+        const modalElement = document.getElementById('produit-modal');
+        const modal = new bootstrap.Modal(modalElement);
+        const form = document.getElementById('produit-form');
+
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const id = form.elements['id'].value;
+            const data = {
+                nom: form.elements['nom'].value,
+                prix_achat: parseFloat(form.elements['prix_achat'].value),
+                prix_vente: parseFloat(form.elements['prix_vente'].value),
+                quantite: parseInt(form.elements['quantite'].value)
+            };
+            if (id) {
+                data.id = parseInt(id, 10);
+            }
+            await handleFormSubmit('/api/produits', id ? 'PUT' : 'POST', data, 'produit-modal', loadStockTab);
+        });
+
         modal.show();
-        document.getElementById('produit-modal').addEventListener('hidden.bs.modal', e => e.target.remove());
+        modalElement.addEventListener('hidden.bs.modal', e => e.target.remove());
     }
 
     function openVenteModal(vente, produits) {
@@ -523,29 +563,6 @@ document.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('submit', async (event) => {
         event.preventDefault();
         const form = event.target;
-
-        const handleFormSubmit = async (url, method, data, modalId, successCallback) => {
-            try {
-                const response = await secureFetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
-                if (response.ok) {
-                    if (modalId) bootstrap.Modal.getInstance(document.getElementById(modalId)).hide();
-                    successCallback();
-                    showToast('Opération réussie.');
-                } else {
-                    const error = await response.json();
-                    showToast(`Erreur: ${error.detail}`, 'error');
-                }
-            } catch (error) {
-                showToast('Erreur réseau.', 'error');
-            }
-        };
-
-        if (form.id === 'produit-form') {
-            const id = form.elements['id'].value;
-            const data = { nom: form.elements['nom'].value, prix_achat: parseFloat(form.elements['prix_achat'].value), prix_vente: parseFloat(form.elements['prix_vente'].value), quantite: parseInt(form.elements['quantite'].value) };
-            if (id) data.id = parseInt(id);
-            await handleFormSubmit('/api/produits', id ? 'PUT' : 'POST', data, 'produit-modal', loadStockTab);
-        }
 
         if (form.id === 'vente-form') {
             const data = { produit_id: parseInt(form.elements['produit_id'].value), quantite: parseInt(form.elements['quantite'].value) };

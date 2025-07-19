@@ -308,7 +308,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="col-md-4"><div class="card text-white bg-warning mb-3"><div class="card-header">Coût des Ventes</div><div class="card-body"><h5 class="card-title" id="cogs-value">0.00 €</h5></div></div></div>
                 <div class="col-md-4"><div class="card text-white bg-success mb-3"><div class="card-header">Bénéfice Brut</div><div class="card-body"><h5 class="card-title" id="benefice-value">0.00 €</h5></div></div></div>
             </div>
-            <div class="card"><div class="card-header">Évolution du Chiffre d'Affaires</div><div class="card-body"><canvas id="ca-chart"></canvas></div></div>`;
+            <div class="card"><div class="card-header">Évolution du Chiffre d'Affaires</div><div class="card-body"><canvas id="ca-chart"></canvas></div></div>
+
+            <div class="row mt-4">
+                <div class="col-md-6"><div class="card"><div class="card-header">Top 5 Produits Rentables</div><div class="card-body"><canvas id="profit-chart"></canvas></div></div></div>
+                <div class="col-md-6"><div class="card"><div class="card-header">Top 5 Produits Perdus</div><div class="card-body"><canvas id="loss-chart"></canvas></div></div></div>
+            </div>
+        `;
 
         const today = new Date().toISOString().split('T')[0];
         const firstDayOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
@@ -335,6 +341,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 type: 'bar',
                 data: { labels: data.graph_data.map(d => d.jour), datasets: [{ label: 'Chiffre Affaires par Jour', data: data.graph_data.map(d => d.ca_jour), backgroundColor: 'rgba(54, 162, 235, 0.6)' }] },
                 options: { scales: { y: { beginAtZero: true } } }
+            });
+
+            const profitCtx = document.getElementById('profit-chart').getContext('2d');
+            new Chart(profitCtx, {
+                type: 'pie',
+                data: { 
+                    labels: data.top_profitable_products.map(p => p.nom),
+                    datasets: [{ label: 'Profit Total', data: data.top_profitable_products.map(p => p.total_profit) }]
+                }
+            });
+
+            const lossCtx = document.getElementById('loss-chart').getContext('2d');
+            new Chart(lossCtx, {
+                type: 'doughnut',
+                data: { 
+                    labels: data.top_lost_products.map(p => p.nom),
+                    datasets: [{ label: 'Quantité Perdue', data: data.top_lost_products.map(p => p.total_lost) }]
+                }
             });
         }
 

@@ -82,6 +82,8 @@ class AnalyseData(BaseModel):
     cogs: float
     benefice: float
     graph_data: List[dict]
+    top_profitable_products: List[dict]
+    top_lost_products: List[dict]
 
 # ==============================================================================
 # INITIALISATION DE L'APPLICATION

@@ -241,9 +241,26 @@ def get_analyse_financiere(db: Session, start_date_str: str, end_date_str: str):
     benefice = chiffre_affaires - cogs
     graph_data_query = db.query(func.date(Vente.date).label('jour'), func.sum(Vente.prix_total).label('ca_jour')).filter(Vente.date >= start_date, Vente.date <= end_date).group_by(func.date(Vente.date)).order_by(func.date(Vente.date))
     graph_data = graph_data_query.all()
+
+    # Top 5 produits les plus rentables
+    top_profitable_query = db.query(
+        Produit.nom,
+        func.sum((Vente.prix_total) - (Produit.prix_achat * Vente.quantite)).label('total_profit')
+    ).join(Produit, Vente.produit_id == Produit.id).filter(Vente.date >= start_date, Vente.date <= end_date).group_by(Produit.nom).order_by(func.sum((Vente.prix_total) - (Produit.prix_achat * Vente.quantite)).desc()).limit(5)
+    top_profitable_products = top_profitable_query.all()
+
+    # Top 5 produits avec le plus de pertes
+    top_lost_query = db.query(
+        Produit.nom,
+        func.sum(Perte.quantite).label('total_lost')
+    ).join(Produit, Perte.produit_id == Produit.id).filter(Perte.date >= start_date, Perte.date <= end_date).group_by(Produit.nom).order_by(func.sum(Perte.quantite).desc()).limit(5)
+    top_lost_products = top_lost_query.all()
+
     return {
         "chiffre_affaires": chiffre_affaires,
         "cogs": cogs,
         "benefice": benefice,
-        "graph_data": [{"jour": r.jour.isoformat(), "ca_jour": r.ca_jour} for r in graph_data]
+        "graph_data": [{"jour": r.jour.isoformat(), "ca_jour": r.ca_jour} for r in graph_data],
+        "top_profitable_products": [dict(r._mapping) for r in top_profitable_products],
+        "top_lost_products": [dict(r._mapping) for r in top_lost_products]
     }

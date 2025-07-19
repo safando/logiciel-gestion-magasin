@@ -131,17 +131,17 @@ async def root():
     return FileResponse('static/index.html')
 
 @app.get("/api/produits", response_model=List[Produit])
-async def api_get_produits(current_user: dict = Depends(auth.get_current_user)):
+async def api_get_produits():
     with database.get_db() as db:
         return database.get_all_produits(db)
 
 @app.post("/api/produits", response_model=Produit)
-async def api_add_produit(produit: ProduitCreate, current_user: dict = Depends(auth.get_current_user)):
+async def api_add_produit(produit: ProduitCreate):
     with database.get_db() as db:
         return database.add_produit(db, **produit.model_dump())
 
 @app.put("/api/produits", response_model=Produit)
-async def api_update_produit(produit: Produit, current_user: dict = Depends(auth.get_current_user)):
+async def api_update_produit(produit: Produit):
     with database.get_db() as db:
         updated = database.update_produit(db, produit.id, **produit.model_dump())
         if not updated:
@@ -149,7 +149,7 @@ async def api_update_produit(produit: Produit, current_user: dict = Depends(auth
         return updated
 
 @app.delete("/api/produits/{produit_id}")
-async def api_delete_produit(produit_id: int, current_user: dict = Depends(auth.get_current_user)):
+async def api_delete_produit(produit_id: int):
     with database.get_db() as db:
         deleted = database.delete_produit(db, produit_id)
         if not deleted:
@@ -157,12 +157,12 @@ async def api_delete_produit(produit_id: int, current_user: dict = Depends(auth.
         return {"status": "success", "message": "Produit supprimé"}
 
 @app.get("/api/ventes", response_model=List[Vente])
-async def api_get_ventes(current_user: dict = Depends(auth.get_current_user)):
+async def api_get_ventes():
     with database.get_db() as db:
         return database.get_all_ventes(db)
 
 @app.post("/api/ventes", response_model=Vente)
-async def api_add_vente(vente: VenteCreate, current_user: dict = Depends(auth.get_current_user)):
+async def api_add_vente(vente: VenteCreate):
     with database.get_db() as db:
         try:
             return database.add_vente(db, **vente.model_dump())
@@ -170,7 +170,7 @@ async def api_add_vente(vente: VenteCreate, current_user: dict = Depends(auth.ge
             raise HTTPException(status_code=400, detail=str(e))
 
 @app.delete("/api/ventes/{vente_id}")
-async def api_delete_vente(vente_id: int, current_user: dict = Depends(auth.get_current_user)):
+async def api_delete_vente(vente_id: int):
     with database.get_db() as db:
         deleted = database.delete_vente(db, vente_id)
         if not deleted:
@@ -178,7 +178,7 @@ async def api_delete_vente(vente_id: int, current_user: dict = Depends(auth.get_
         return {"status": "success", "message": "Vente supprimée"}
 
 @app.put("/api/ventes/{vente_id}", response_model=Vente)
-async def api_update_vente(vente_id: int, vente: VenteUpdate, current_user: dict = Depends(auth.get_current_user)):
+async def api_update_vente(vente_id: int, vente: VenteUpdate):
     with database.get_db() as db:
         try:
             return database.update_vente(db, vente_id, vente.produit_id, vente.quantite)
@@ -186,12 +186,12 @@ async def api_update_vente(vente_id: int, vente: VenteUpdate, current_user: dict
             raise HTTPException(status_code=400, detail=str(e))
 
 @app.get("/api/pertes", response_model=List[Perte])
-async def api_get_pertes(current_user: dict = Depends(auth.get_current_user)):
+async def api_get_pertes():
     with database.get_db() as db:
         return database.get_all_pertes(db)
 
 @app.post("/api/pertes", response_model=Perte)
-async def api_add_perte(perte: PerteCreate, current_user: dict = Depends(auth.get_current_user)):
+async def api_add_perte(perte: PerteCreate):
     with database.get_db() as db:
         try:
             return database.add_perte(db, **perte.model_dump())
@@ -199,7 +199,7 @@ async def api_add_perte(perte: PerteCreate, current_user: dict = Depends(auth.ge
             raise HTTPException(status_code=400, detail=str(e))
 
 @app.put("/api/pertes/{perte_id}", response_model=Perte)
-async def api_update_perte(perte_id: int, perte: PerteUpdate, current_user: dict = Depends(auth.get_current_user)):
+async def api_update_perte(perte_id: int, perte: PerteUpdate):
     with database.get_db() as db:
         try:
             return database.update_perte(db, perte_id, perte.produit_id, perte.quantite)
@@ -207,7 +207,7 @@ async def api_update_perte(perte_id: int, perte: PerteUpdate, current_user: dict
             raise HTTPException(status_code=400, detail=str(e))
 
 @app.delete("/api/pertes/{perte_id}")
-async def api_delete_perte(perte_id: int, current_user: dict = Depends(auth.get_current_user)):
+async def api_delete_perte(perte_id: int):
     with database.get_db() as db:
         deleted = database.delete_perte(db, perte_id)
         if not deleted:
@@ -215,12 +215,12 @@ async def api_delete_perte(perte_id: int, current_user: dict = Depends(auth.get_
         return {"status": "success", "message": "Perte supprimée"}
 
 @app.get("/api/dashboard", response_model=DashboardData)
-async def api_get_dashboard_kpis(current_user: dict = Depends(auth.get_current_user)):
+async def api_get_dashboard_kpis():
     with database.get_db() as db:
         return database.get_dashboard_kpis(db)
 
 @app.get("/api/analyse", response_model=AnalyseData)
-async def api_get_analyse(start_date: str, end_date: str, current_user: dict = Depends(auth.get_current_user)):
+async def api_get_analyse(start_date: str, end_date: str):
     with database.get_db() as db:
         try:
             start_date_iso = f"{start_date}T00:00:00"
@@ -230,7 +230,7 @@ async def api_get_analyse(start_date: str, end_date: str, current_user: dict = D
             raise HTTPException(status_code=500, detail=f"Erreur lors de l'analyse: {e}")
 
 @app.get("/api/export")
-async def api_export_data(data_type: str, file_format: str, current_user: dict = Depends(auth.get_current_user)):
+async def api_export_data(data_type: str, file_format: str):
     with database.get_db() as db:
         if data_type == "stock":
             data = database.get_all_produits(db)

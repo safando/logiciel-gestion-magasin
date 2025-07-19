@@ -493,7 +493,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     showToast(`Erreur d'export: ${error.detail}`, 'error');
                 }
             } catch (error) {
-                showToast('Erreur réseau lors de l\'export.', 'error');
+                showToast(`Erreur réseau lors de l'export.`, 'error');
             }
         }
     });
@@ -506,7 +506,7 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 const response = await secureFetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
                 if (response.ok) {
-                    bootstrap.Modal.getInstance(document.getElementById(modalId)).hide();
+                    if (modalId) bootstrap.Modal.getInstance(document.getElementById(modalId)).hide();
                     successCallback();
                     showToast('Opération réussie.');
                 } else {

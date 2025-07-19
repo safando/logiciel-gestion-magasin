@@ -91,8 +91,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let authToken = null;
 
-    // --- GESTION DE L'AUTHENTIFICATION ---
+    // --- UTILS --- 
+    const showToast = (message, type = 'success') => {
+        const background = type === 'success' 
+            ? 'linear-gradient(to right, #00b09b, #96c93d)' 
+            : 'linear-gradient(to right, #ff5f6d, #ffc371)';
+        Toastify({ text: message, className: "info", style: { background } }).showToast();
+    };
 
+    // --- AUTHENTICATION ---
     async function handleLogin(event) {
         event.preventDefault();
         const username = document.getElementById('username').value;
@@ -157,11 +164,10 @@ document.addEventListener('DOMContentLoaded', () => {
     loginForm.addEventListener('submit', handleLogin);
     logoutButton.addEventListener('click', handleLogout);
 
-    // --- LOGIQUE DE L'APPLICATION PRINCIPALE ---
+    // --- CORE APP LOGIC ---
 
     async function loadTabContent(tabName) {
         mainContent.innerHTML = '<div class="d-flex justify-content-center align-items-center" style="height: 80vh;"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>';
-
         try {
             switch (tabName) {
                 case 'dashboard': await loadDashboardTab(); break;
@@ -175,13 +181,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    async function loadDashboardTab() {
-        const response = await secureFetch('/api/dashboard');
-        const kpis = await response.json();
-        let topVentesHtml = kpis.top_ventes_today.map(item => `<li class="list-group-item d-flex justify-content-between align-items-center">${item.nom} <span class="badge bg-primary rounded-pill">${item.quantite_vendue}</span></li>`).join('') || "<p class='list-group-item text-muted'>Aucune vente aujourd'hui.</p>";
-        let lowStockHtml = kpis.low_stock_produits.map(item => `<li class="list-group-item d-flex justify-content-between align-items-center">${item.nom} <span class="badge bg-danger rounded-pill">${item.quantite}</span></li>`).join('') || "<p class='list-group-item text-muted'>Aucun produit en stock faible.</p>";
-        let stockParProduitHtml = kpis.stock_par_produit.map(item => `<li class="list-group-item d-flex justify-content-between align-items-center">${item.nom} <span class="badge bg-secondary rounded-pill">${item.quantite}</span></li>`).join('') || "<p class='list-group-item text-muted'>Aucun produit en stock.</p>";
+    // --- TAB RENDERERS ---
 
+    async function loadDashboardTab() {
+        const kpis = await secureFetch('/api/dashboard').then(res => res.json());
+        const topVentesHtml = kpis.top_ventes_today.map(item => `<li class="list-group-item d-flex justify-content-between align-items-center">${item.nom} <span class="badge bg-primary rounded-pill">${item.quantite_vendue}</span></li>`).join('') || "<p class='list-group-item text-muted'>Aucune vente aujourd'hui.</p>";
+        const lowStockHtml = kpis.low_stock_produits.map(item => `<li class="list-group-item d-flex justify-content-between align-items-center">${item.nom} <span class="badge bg-danger rounded-pill">${item.quantite}</span></li>`).join('') || "<p class='list-group-item text-muted'>Aucun produit en stock faible.</p>";
+        const stockParProduitHtml = kpis.stock_par_produit.map(item => `<li class="list-group-item d-flex justify-content-between align-items-center">${item.nom} <span class="badge bg-secondary rounded-pill">${item.quantite}</span></li>`).join('') || "<p class='list-group-item text-muted'>Aucun produit en stock.</p>";
         mainContent.innerHTML = `
             <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom"><h1 class="h2">Tableau de Bord</h1></div>
             <div class="row">
@@ -209,8 +215,7 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
             <div class="table-responsive"><table class="table table-striped table-sm" id="stock-table"><thead><tr><th>Nom</th><th>Prix d'achat</th><th>Prix de vente</th><th>Quantité</th><th>Actions</th></tr></thead><tbody></tbody></table></div>`;
 
-        const response = await secureFetch('/api/produits');
-        const produits = await response.json();
+        const produits = await secureFetch('/api/produits').then(res => res.json());
         const tableBody = document.querySelector('#stock-table tbody');
         tableBody.innerHTML = '';
         produits.forEach(p => {
@@ -218,55 +223,31 @@ document.addEventListener('DOMContentLoaded', () => {
             row.innerHTML = `<td>${p.nom}</td><td>${p.prix_achat.toFixed(2)} €</td><td>${p.prix_vente.toFixed(2)} €</td><td>${p.quantite}</td><td><button class="btn btn-sm btn-warning edit-btn" data-id="${p.id}"><i class="bi bi-pencil-square"></i></button> <button class="btn btn-sm btn-danger delete-btn" data-id="${p.id}"><i class="bi bi-trash"></i></button></td>`;
         });
 
-        // Logique de recherche
         document.getElementById('stock-search').addEventListener('keyup', (e) => {
             const searchTerm = e.target.value.toLowerCase();
             tableBody.querySelectorAll('tr').forEach(row => {
-                const text = row.textContent.toLowerCase();
-                row.style.display = text.includes(searchTerm) ? '' : 'none';
+                row.style.display = row.textContent.toLowerCase().includes(searchTerm) ? '' : 'none';
             });
         });
     }
 
-    function openProduitModal(produit = null) {
-        const modalHTML = `
-        <div class="modal fade" id="produit-modal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
-            <div class="modal-header"><h5 class="modal-title">${produit ? 'Modifier le produit' : 'Ajouter un produit'}</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-            <form id="produit-form">
-                <div class="modal-body">
-                    <input type="hidden" name="id" value="${produit ? produit.id : ''}">
-                    <div class="mb-3"><label for="produit-nom" class="form-label">Nom</label><input type="text" class="form-control" id="produit-nom" name="nom" required value="${produit ? produit.nom : ''}"></div>
-                    <div class="mb-3"><label for="produit-prix-achat" class="form-label">Prix d'achat</label><input type="number" class="form-control" id="produit-prix-achat" name="prix_achat" required step="0.01" value="${produit ? produit.prix_achat : ''}"></div>
-                    <div class="mb-3"><label for="produit-prix-vente" class="form-label">Prix de vente</label><input type="number" class="form-control" id="produit-prix-vente" name="prix_vente" required step="0.01" value="${produit ? produit.prix_vente : ''}"></div>
-                    <div class="mb-3"><label for="produit-quantite" class="form-label">Quantité</label><input type="number" class="form-control" id="produit-quantite" name="quantite" required value="${produit ? produit.quantite : '1'}"></div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-                    <button type="submit" class="btn btn-primary">Enregistrer</button>
-                </div>
-            </form>
-        </div></div></div>`;
-        document.body.insertAdjacentHTML('beforeend', modalHTML);
-        const modal = new bootstrap.Modal(document.getElementById('produit-modal'));
-        modal.show();
-        document.getElementById('produit-modal').addEventListener('hidden.bs.modal', e => e.target.remove());
-    }
-
     async function loadVentesTab() {
-        const produits = await (await secureFetch('/api/produits')).json();
+        const [produits, ventes] = await Promise.all([
+            secureFetch('/api/produits').then(res => res.json()),
+            secureFetch('/api/ventes').then(res => res.json())
+        ]);
         let options = produits.map(p => `<option value="${p.id}">${p.nom} (Stock: ${p.quantite})</option>`).join('');
 
         mainContent.innerHTML = `
             <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom"><h1 class="h2">Gestion des Ventes</h1></div>
             <div class="card mb-4"><div class="card-header">Enregistrer une vente</div><div class="card-body"><form id="vente-form"><div class="row">
-                <div class="col-md-6 mb-3"><label for="vente-produit-id" class="form-label">Produit</label><select class="form-select" id="vente-produit-id" required><option value="" disabled selected>Choisir...</option>${options}</select></div>
-                <div class="col-md-4 mb-3"><label for="vente-quantite" class="form-label">Quantité</label><input type="number" class="form-control" id="vente-quantite" value="1" min="1" required></div>
+                <div class="col-md-6 mb-3"><label for="vente-produit-id" class="form-label">Produit</label><select class="form-select" name="produit_id" required><option value="" disabled selected>Choisir...</option>${options}</select></div>
+                <div class="col-md-4 mb-3"><label for="vente-quantite" class="form-label">Quantité</label><input type="number" class="form-control" name="quantite" value="1" min="1" required></div>
                 <div class="col-md-2 d-flex align-items-end"><button type="submit" class="btn btn-primary w-100">Enregistrer</button></div>
             </div></form></div></div>
             <div class="d-flex justify-content-between align-items-center"><h2 class="h3">Historique des Ventes</h2><input type="text" id="ventes-search" class="form-control form-control-sm mx-3" placeholder="Rechercher..."><div class="btn-group"><button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown"><i class="bi bi-download"></i> Export</button><ul class="dropdown-menu dropdown-menu-end"><li><a class="dropdown-item export-btn" href="#" data-type="ventes" data-format="excel">Excel</a></li><li><a class="dropdown-item export-btn" href="#" data-type="ventes" data-format="pdf">PDF</a></li></ul></div></div>
             <div class="table-responsive"><table class="table table-striped table-sm" id="ventes-table"><thead><tr><th>Produit</th><th>Quantité</th><th>Prix Total</th><th>Date</th><th>Actions</th></tr></thead><tbody></tbody></table></div>`;
 
-        const ventes = await (await secureFetch('/api/ventes')).json();
         const tableBody = document.querySelector('#ventes-table tbody');
         tableBody.innerHTML = '';
         ventes.forEach(v => {
@@ -274,51 +255,31 @@ document.addEventListener('DOMContentLoaded', () => {
             row.innerHTML = `<td>${v.produit.nom}</td><td>${v.quantite}</td><td>${v.prix_total.toFixed(2)} €</td><td>${new Date(v.date).toLocaleString('fr-FR')}</td><td><button class="btn btn-sm btn-warning edit-vente-btn" data-id="${v.id}"><i class="bi bi-pencil-square"></i></button> <button class="btn btn-sm btn-danger delete-vente-btn" data-id="${v.id}"><i class="bi bi-trash"></i></button></td>`;
         });
 
-        // Logique de recherche
         document.getElementById('ventes-search').addEventListener('keyup', (e) => {
             const searchTerm = e.target.value.toLowerCase();
             tableBody.querySelectorAll('tr').forEach(row => {
-                const text = row.textContent.toLowerCase();
-                row.style.display = text.includes(searchTerm) ? '' : 'none';
+                row.style.display = row.textContent.toLowerCase().includes(searchTerm) ? '' : 'none';
             });
         });
     }
 
-    function openVenteModal(vente, produits) {
-        let options = produits.map(p => `<option value="${p.id}" ${vente && p.id === vente.produit.id ? 'selected' : ''}>${p.nom} (Stock: ${p.quantite})</option>`).join('');
-        const modalHTML = `
-        <div class="modal fade" id="vente-modal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
-            <div class="modal-header"><h5 class="modal-title">Modifier la vente</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-            <form id="vente-edit-form">
-                <div class="modal-body">
-                    <input type="hidden" name="id" value="${vente.id}">
-                    <div class="mb-3"><label for="vente-produit-id" class="form-label">Produit</label><select class="form-select" name="produit_id" required>${options}</select></div>
-                    <div class="mb-3"><label for="vente-quantite" class="form-label">Quantité</label><input type="number" class="form-control" name="quantite" required value="${vente.quantite}"></div>
-                </div>
-                <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button><button type="submit" class="btn btn-primary">Enregistrer</button></div>
-            </form>
-        </div></div></div>`;
-        document.body.insertAdjacentHTML('beforeend', modalHTML);
-        const modal = new bootstrap.Modal(document.getElementById('vente-modal'));
-        modal.show();
-        document.getElementById('vente-modal').addEventListener('hidden.bs.modal', e => e.target.remove());
-    }
-
     async function loadPertesTab() {
-        const produits = await (await secureFetch('/api/produits')).json();
+        const [produits, pertes] = await Promise.all([
+            secureFetch('/api/produits').then(res => res.json()),
+            secureFetch('/api/pertes').then(res => res.json())
+        ]);
         let options = produits.map(p => `<option value="${p.id}">${p.nom} (Stock: ${p.quantite})</option>`).join('');
 
         mainContent.innerHTML = `
             <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom"><h1 class="h2">Gestion des Pertes</h1></div>
             <div class="card mb-4"><div class="card-header">Enregistrer une perte</div><div class="card-body"><form id="perte-form"><div class="row">
-                <div class="col-md-6 mb-3"><label for="perte-produit-id" class="form-label">Produit</label><select class="form-select" id="perte-produit-id" required><option value="" disabled selected>Choisir...</option>${options}</select></div>
-                <div class="col-md-4 mb-3"><label for="perte-quantite" class="form-label">Quantité</label><input type="number" class="form-control" id="perte-quantite" value="1" min="1" required></div>
+                <div class="col-md-6 mb-3"><label for="perte-produit-id" class="form-label">Produit</label><select class="form-select" name="produit_id" required><option value="" disabled selected>Choisir...</option>${options}</select></div>
+                <div class="col-md-4 mb-3"><label for="perte-quantite" class="form-label">Quantité</label><input type="number" class="form-control" name="quantite" value="1" min="1" required></div>
                 <div class="col-md-2 d-flex align-items-end"><button type="submit" class="btn btn-danger w-100">Enregistrer</button></div>
             </div></form></div></div>
             <div class="d-flex justify-content-between align-items-center"><h2 class="h3">Historique des Pertes</h2><input type="text" id="pertes-search" class="form-control form-control-sm mx-3" placeholder="Rechercher..."><div class="btn-group"><button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown"><i class="bi bi-download"></i> Export</button><ul class="dropdown-menu dropdown-menu-end"><li><a class="dropdown-item export-btn" href="#" data-type="pertes" data-format="excel">Excel</a></li><li><a class="dropdown-item export-btn" href="#" data-type="pertes" data-format="pdf">PDF</a></li></ul></div></div>
             <div class="table-responsive"><table class="table table-striped table-sm" id="pertes-table"><thead><tr><th>Produit</th><th>Quantité</th><th>Date</th><th>Actions</th></tr></thead><tbody></tbody></table></div>`;
 
-        const pertes = await (await secureFetch('/api/pertes')).json();
         const tableBody = document.querySelector('#pertes-table tbody');
         tableBody.innerHTML = '';
         pertes.forEach(p => {
@@ -326,34 +287,12 @@ document.addEventListener('DOMContentLoaded', () => {
             row.innerHTML = `<td>${p.produit.nom}</td><td>${p.quantite}</td><td>${new Date(p.date).toLocaleString('fr-FR')}</td><td><button class="btn btn-sm btn-warning edit-perte-btn" data-id="${p.id}"><i class="bi bi-pencil-square"></i></button> <button class="btn btn-sm btn-danger delete-perte-btn" data-id="${p.id}"><i class="bi bi-trash"></i></button></td>`;
         });
 
-        // Logique de recherche
         document.getElementById('pertes-search').addEventListener('keyup', (e) => {
             const searchTerm = e.target.value.toLowerCase();
             tableBody.querySelectorAll('tr').forEach(row => {
-                const text = row.textContent.toLowerCase();
-                row.style.display = text.includes(searchTerm) ? '' : 'none';
+                row.style.display = row.textContent.toLowerCase().includes(searchTerm) ? '' : 'none';
             });
         });
-    }
-
-    function openPerteModal(perte, produits) {
-        let options = produits.map(p => `<option value="${p.id}" ${perte && p.id === perte.produit.id ? 'selected' : ''}>${p.nom} (Stock: ${p.quantite})</option>`).join('');
-        const modalHTML = `
-        <div class="modal fade" id="perte-modal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
-            <div class="modal-header"><h5 class="modal-title">Modifier la perte</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-            <form id="perte-edit-form">
-                <div class="modal-body">
-                    <input type="hidden" name="id" value="${perte.id}">
-                    <div class="mb-3"><label for="perte-produit-id" class="form-label">Produit</label><select class="form-select" name="produit_id" required>${options}</select></div>
-                    <div class="mb-3"><label for="perte-quantite" class="form-label">Quantité</label><input type="number" class="form-control" name="quantite" required value="${perte.quantite}"></div>
-                </div>
-                <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button><button type="submit" class="btn btn-primary">Enregistrer</button></div>
-            </form>
-        </div></div></div>`;
-        document.body.insertAdjacentHTML('beforeend', modalHTML);
-        const modal = new bootstrap.Modal(document.getElementById('perte-modal'));
-        modal.show();
-        document.getElementById('perte-modal').addEventListener('hidden.bs.modal', e => e.target.remove());
     }
 
     async function loadAnalyseTab() {
@@ -403,9 +342,71 @@ document.addEventListener('DOMContentLoaded', () => {
         runAnalysis();
     }
 
-    // --- ÉCOUTEURS D'ÉVÉNEMENTS GLOBAUX ---
+    // --- MODAL LOGIC ---
 
-    // Clics
+    function openProduitModal(produit = null) {
+        const modalHTML = `
+        <div class="modal fade" id="produit-modal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+            <form id="produit-form">
+                <div class="modal-header"><h5 class="modal-title">${produit ? 'Modifier le produit' : 'Ajouter un produit'}</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                <div class="modal-body">
+                    <input type="hidden" name="id" value="${produit ? produit.id : ''}">
+                    <div class="mb-3"><label for="produit-nom" class="form-label">Nom</label><input type="text" class="form-control" name="nom" required value="${produit ? produit.nom : ''}"></div>
+                    <div class="mb-3"><label for="produit-prix-achat" class="form-label">Prix d'achat</label><input type="number" class="form-control" name="prix_achat" required step="0.01" value="${produit ? produit.prix_achat : ''}"></div>
+                    <div class="mb-3"><label for="produit-prix-vente" class="form-label">Prix de vente</label><input type="number" class="form-control" name="prix_vente" required step="0.01" value="${produit ? produit.prix_vente : ''}"></div>
+                    <div class="mb-3"><label for="produit-quantite" class="form-label">Quantité</label><input type="number" class="form-control" name="quantite" required value="${produit ? produit.quantite : '1'}"></div>
+                </div>
+                <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button><button type="submit" class="btn btn-primary">Enregistrer</button></div>
+            </form>
+        </div></div></div>`;
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+        const modal = new bootstrap.Modal(document.getElementById('produit-modal'));
+        modal.show();
+        document.getElementById('produit-modal').addEventListener('hidden.bs.modal', e => e.target.remove());
+    }
+
+    function openVenteModal(vente, produits) {
+        let options = produits.map(p => `<option value="${p.id}" ${vente && p.id === vente.produit.id ? 'selected' : ''}>${p.nom} (Stock: ${p.quantite})</option>`).join('');
+        const modalHTML = `
+        <div class="modal fade" id="vente-modal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+            <form id="vente-edit-form">
+                <div class="modal-header"><h5 class="modal-title">Modifier la vente</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                <div class="modal-body">
+                    <input type="hidden" name="id" value="${vente.id}">
+                    <div class="mb-3"><label for="vente-produit-id" class="form-label">Produit</label><select class="form-select" name="produit_id" required>${options}</select></div>
+                    <div class="mb-3"><label for="vente-quantite" class="form-label">Quantité</label><input type="number" class="form-control" name="quantite" required value="${vente.quantite}"></div>
+                </div>
+                <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button><button type="submit" class="btn btn-primary">Enregistrer</button></div>
+            </form>
+        </div></div></div>`;
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+        const modal = new bootstrap.Modal(document.getElementById('vente-modal'));
+        modal.show();
+        document.getElementById('vente-modal').addEventListener('hidden.bs.modal', e => e.target.remove());
+    }
+
+    function openPerteModal(perte, produits) {
+        let options = produits.map(p => `<option value="${p.id}" ${perte && p.id === perte.produit.id ? 'selected' : ''}>${p.nom} (Stock: ${p.quantite})</option>`).join('');
+        const modalHTML = `
+        <div class="modal fade" id="perte-modal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+            <form id="perte-edit-form">
+                <div class="modal-header"><h5 class="modal-title">Modifier la perte</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                <div class="modal-body">
+                    <input type="hidden" name="id" value="${perte.id}">
+                    <div class="mb-3"><label for="perte-produit-id" class="form-label">Produit</label><select class="form-select" name="produit_id" required>${options}</select></div>
+                    <div class="mb-3"><label for="perte-quantite" class="form-label">Quantité</label><input type="number" class="form-control" name="quantite" required value="${perte.quantite}"></div>
+                </div>
+                <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button><button type="submit" class="btn btn-primary">Enregistrer</button></div>
+            </form>
+        </div></div></div>`;
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+        const modal = new bootstrap.Modal(document.getElementById('perte-modal'));
+        modal.show();
+        document.getElementById('perte-modal').addEventListener('hidden.bs.modal', e => e.target.remove());
+    }
+
+    // --- EVENT LISTENERS ---
+
     document.addEventListener('click', async (event) => {
         const target = event.target;
         const targetClosest = (selector) => target.closest(selector);
@@ -415,6 +416,10 @@ document.addEventListener('DOMContentLoaded', () => {
             navLinks.forEach(l => l.classList.remove('active'));
             target.classList.add('active');
             loadTabContent(target.dataset.tab);
+            const sidebar = document.getElementById('sidebar');
+            if (sidebar.classList.contains('show')) {
+                new bootstrap.Collapse(sidebar).hide();
+            }
         }
         if (targetClosest('#add-produit-btn')) openProduitModal();
         
@@ -422,7 +427,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const id = targetClosest('.delete-btn').dataset.id;
             if (confirm("Êtes-vous sûr ?")) {
                 const response = await secureFetch(`/api/produits/${id}`, { method: 'DELETE' });
-                if (response.ok) loadStockTab();
+                if (response.ok) { loadStockTab(); showToast('Produit supprimé.'); }
             }
         }
         if (targetClosest('.edit-btn')) {
@@ -455,7 +460,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const id = targetClosest('.delete-vente-btn').dataset.id;
             if (confirm("Êtes-vous sûr ?")) {
                 const response = await secureFetch(`/api/ventes/${id}`, { method: 'DELETE' });
-                if (response.ok) loadVentesTab();
+                if (response.ok) { loadVentesTab(); showToast('Vente supprimée.'); }
             }
         }
 
@@ -463,107 +468,83 @@ document.addEventListener('DOMContentLoaded', () => {
             const id = targetClosest('.delete-perte-btn').dataset.id;
             if (confirm("Êtes-vous sûr ?")) {
                 const response = await secureFetch(`/api/pertes/${id}`, { method: 'DELETE' });
-                if (response.ok) loadPertesTab();
+                if (response.ok) { loadPertesTab(); showToast('Perte supprimée.'); }
             }
         }
 
         if (target.matches('.export-btn')) {
             event.preventDefault();
             const { type, format } = target.dataset;
-            const response = await secureFetch(`/api/export?data_type=${type}&file_format=${format}`);
-            if (response.ok) {
-                const blob = await response.blob();
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.style.display = 'none';
-                a.href = url;
-                a.download = `export_${type}.${format === 'excel' ? 'xlsx' : 'pdf'}`;
-                document.body.appendChild(a);
-                a.click();
-                window.URL.revokeObjectURL(url);
+            try {
+                const response = await secureFetch(`/api/export?data_type=${type}&file_format=${format}`);
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.style.display = 'none';
+                    a.href = url;
+                    a.download = `export_${type}.${format === 'excel' ? 'xlsx' : 'pdf'}`;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    a.remove();
+                } else {
+                    const error = await response.json();
+                    showToast(`Erreur d'export: ${error.detail}`, 'error');
+                }
+            } catch (error) {
+                showToast('Erreur réseau lors de l\'export.', 'error');
             }
         }
     });
 
-    // Soumissions de formulaires
     document.addEventListener('submit', async (event) => {
         event.preventDefault();
         const form = event.target;
 
+        const handleFormSubmit = async (url, method, data, modalId, successCallback) => {
+            try {
+                const response = await secureFetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+                if (response.ok) {
+                    bootstrap.Modal.getInstance(document.getElementById(modalId)).hide();
+                    successCallback();
+                    showToast('Opération réussie.');
+                } else {
+                    const error = await response.json();
+                    showToast(`Erreur: ${error.detail}`, 'error');
+                }
+            } catch (error) {
+                showToast('Erreur réseau.', 'error');
+            }
+        };
+
         if (form.id === 'produit-form') {
             const id = form.elements['id'].value;
-            const data = { 
-                nom: form.elements['nom'].value, 
-                prix_achat: parseFloat(form.elements['prix_achat'].value), 
-                prix_vente: parseFloat(form.elements['prix_vente'].value), 
-                quantite: parseInt(form.elements['quantite'].value) 
-            };
+            const data = { nom: form.elements['nom'].value, prix_achat: parseFloat(form.elements['prix_achat'].value), prix_vente: parseFloat(form.elements['prix_vente'].value), quantite: parseInt(form.elements['quantite'].value) };
             if (id) data.id = parseInt(id);
-            const response = await secureFetch('/api/produits', { 
-                method: id ? 'PUT' : 'POST', 
-                headers: { 'Content-Type': 'application/json' }, 
-                body: JSON.stringify(data) 
-            });
-            if (response.ok) { 
-                bootstrap.Modal.getInstance(document.getElementById('produit-modal')).hide(); 
-                loadStockTab(); 
-                Toastify({ text: "Produit enregistré avec succès", className: "info", style: { background: "linear-gradient(to right, #00b09b, #96c93d)" } }).showToast();
-            } else { 
-                const error = await response.json();
-                Toastify({ text: `Erreur: ${error.detail}`, className: "error", style: { background: "linear-gradient(to right, #ff5f6d, #ffc371)" } }).showToast();
-            }
+            await handleFormSubmit('/api/produits', id ? 'PUT' : 'POST', data, 'produit-modal', loadStockTab);
         }
 
         if (form.id === 'vente-form') {
-            const data = { produit_id: parseInt(form.elements['vente-produit-id'].value), quantite: parseInt(form.elements['vente-quantite'].value) };
-            const response = await secureFetch('/api/ventes', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
-            if (response.ok) { 
-                loadVentesTab(); 
-                Toastify({ text: "Vente enregistrée", className: "info", style: { background: "linear-gradient(to right, #00b09b, #96c93d)" } }).showToast();
-            } else { 
-                const error = await response.json();
-                Toastify({ text: `Erreur: ${error.detail}`, className: "error", style: { background: "linear-gradient(to right, #ff5f6d, #ffc371)" } }).showToast();
-            }
+            const data = { produit_id: parseInt(form.elements['produit_id'].value), quantite: parseInt(form.elements['quantite'].value) };
+            await handleFormSubmit('/api/ventes', 'POST', data, null, loadVentesTab);
         }
 
         if (form.id === 'perte-form') {
-            const data = { produit_id: parseInt(form.elements['perte-produit-id'].value), quantite: parseInt(form.elements['perte-quantite'].value) };
-            const response = await secureFetch('/api/pertes', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
-            if (response.ok) { 
-                loadPertesTab(); 
-                Toastify({ text: "Perte enregistrée", className: "info", style: { background: "linear-gradient(to right, #00b09b, #96c93d)" } }).showToast();
-            } else { 
-                const error = await response.json();
-                Toastify({ text: `Erreur: ${error.detail}`, className: "error", style: { background: "linear-gradient(to right, #ff5f6d, #ffc371)" } }).showToast();
-            }
+            const data = { produit_id: parseInt(form.elements['produit_id'].value), quantite: parseInt(form.elements['quantite'].value) };
+            await handleFormSubmit('/api/pertes', 'POST', data, null, loadPertesTab);
         }
 
         if (form.id === 'vente-edit-form') {
             const id = form.elements['id'].value;
             const data = { produit_id: parseInt(form.elements['produit_id'].value), quantite: parseInt(form.elements['quantite'].value) };
-            const response = await secureFetch(`/api/ventes/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
-            if (response.ok) { 
-                bootstrap.Modal.getInstance(document.getElementById('vente-modal')).hide(); 
-                loadVentesTab(); 
-                Toastify({ text: "Vente mise à jour", className: "info", style: { background: "linear-gradient(to right, #00b09b, #96c93d)" } }).showToast();
-            } else { 
-                const error = await response.json();
-                Toastify({ text: `Erreur: ${error.detail}`, className: "error", style: { background: "linear-gradient(to right, #ff5f6d, #ffc371)" } }).showToast();
-            }
+            await handleFormSubmit(`/api/ventes/${id}`, 'PUT', data, 'vente-modal', loadVentesTab);
         }
 
         if (form.id === 'perte-edit-form') {
             const id = form.elements['id'].value;
             const data = { produit_id: parseInt(form.elements['produit_id'].value), quantite: parseInt(form.elements['quantite'].value) };
-            const response = await secureFetch(`/api/pertes/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
-            if (response.ok) { 
-                bootstrap.Modal.getInstance(document.getElementById('perte-modal')).hide(); 
-                loadPertesTab(); 
-                Toastify({ text: "Perte mise à jour", className: "info", style: { background: "linear-gradient(to right, #00b09b, #96c93d)" } }).showToast();
-            } else { 
-                const error = await response.json();
-                Toastify({ text: `Erreur: ${error.detail}`, className: "error", style: { background: "linear-gradient(to right, #ff5f6d, #ffc371)" } }).showToast();
-            }
+            await handleFormSubmit(`/api/pertes/${id}`, 'PUT', data, 'perte-modal', loadPertesTab);
         }
     });
 

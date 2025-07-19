@@ -507,35 +507,63 @@ document.addEventListener('DOMContentLoaded', () => {
             if (response.ok) { 
                 bootstrap.Modal.getInstance(document.getElementById('produit-modal')).hide(); 
                 loadStockTab(); 
+                Toastify({ text: "Produit enregistré avec succès", className: "info", style: { background: "linear-gradient(to right, #00b09b, #96c93d)" } }).showToast();
             } else { 
-                alert(`Erreur: ${(await response.json()).detail}`); 
+                const error = await response.json();
+                Toastify({ text: `Erreur: ${error.detail}`, className: "error", style: { background: "linear-gradient(to right, #ff5f6d, #ffc371)" } }).showToast();
             }
         }
 
         if (form.id === 'vente-form') {
             const data = { produit_id: parseInt(form.elements['vente-produit-id'].value), quantite: parseInt(form.elements['vente-quantite'].value) };
             const response = await secureFetch('/api/ventes', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
-            if (response.ok) loadVentesTab(); else { alert(`Erreur: ${(await response.json()).detail}`); }
+            if (response.ok) { 
+                loadVentesTab(); 
+                Toastify({ text: "Vente enregistrée", className: "info", style: { background: "linear-gradient(to right, #00b09b, #96c93d)" } }).showToast();
+            } else { 
+                const error = await response.json();
+                Toastify({ text: `Erreur: ${error.detail}`, className: "error", style: { background: "linear-gradient(to right, #ff5f6d, #ffc371)" } }).showToast();
+            }
         }
 
         if (form.id === 'perte-form') {
             const data = { produit_id: parseInt(form.elements['perte-produit-id'].value), quantite: parseInt(form.elements['perte-quantite'].value) };
             const response = await secureFetch('/api/pertes', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
-            if (response.ok) loadPertesTab(); else { alert(`Erreur: ${(await response.json()).detail}`); }
+            if (response.ok) { 
+                loadPertesTab(); 
+                Toastify({ text: "Perte enregistrée", className: "info", style: { background: "linear-gradient(to right, #00b09b, #96c93d)" } }).showToast();
+            } else { 
+                const error = await response.json();
+                Toastify({ text: `Erreur: ${error.detail}`, className: "error", style: { background: "linear-gradient(to right, #ff5f6d, #ffc371)" } }).showToast();
+            }
         }
 
         if (form.id === 'vente-edit-form') {
             const id = form.elements['id'].value;
             const data = { produit_id: parseInt(form.elements['produit_id'].value), quantite: parseInt(form.elements['quantite'].value) };
             const response = await secureFetch(`/api/ventes/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
-            if (response.ok) { bootstrap.Modal.getInstance(document.getElementById('vente-modal')).hide(); loadVentesTab(); } else { alert(`Erreur: ${(await response.json()).detail}`); }
+            if (response.ok) { 
+                bootstrap.Modal.getInstance(document.getElementById('vente-modal')).hide(); 
+                loadVentesTab(); 
+                Toastify({ text: "Vente mise à jour", className: "info", style: { background: "linear-gradient(to right, #00b09b, #96c93d)" } }).showToast();
+            } else { 
+                const error = await response.json();
+                Toastify({ text: `Erreur: ${error.detail}`, className: "error", style: { background: "linear-gradient(to right, #ff5f6d, #ffc371)" } }).showToast();
+            }
         }
 
         if (form.id === 'perte-edit-form') {
             const id = form.elements['id'].value;
             const data = { produit_id: parseInt(form.elements['produit_id'].value), quantite: parseInt(form.elements['quantite'].value) };
             const response = await secureFetch(`/api/pertes/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
-            if (response.ok) { bootstrap.Modal.getInstance(document.getElementById('perte-modal')).hide(); loadPertesTab(); } else { alert(`Erreur: ${(await response.json()).detail}`); }
+            if (response.ok) { 
+                bootstrap.Modal.getInstance(document.getElementById('perte-modal')).hide(); 
+                loadPertesTab(); 
+                Toastify({ text: "Perte mise à jour", className: "info", style: { background: "linear-gradient(to right, #00b09b, #96c93d)" } }).showToast();
+            } else { 
+                const error = await response.json();
+                Toastify({ text: `Erreur: ${error.detail}`, className: "error", style: { background: "linear-gradient(to right, #ff5f6d, #ffc371)" } }).showToast();
+            }
         }
     });
 

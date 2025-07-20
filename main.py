@@ -282,15 +282,38 @@ async def api_export_data(data_type: str, file_format: str):
     with database.get_db() as db:
         if data_type == "stock":
             data = database.get_all_produits(db)
+            # Conversion simple car il n'y a pas de données imbriquées
             records = [p.model_dump() for p in data]
         elif data_type == "ventes":
             data = database.get_all_ventes(db)
-            records = [v.model_dump() for v in data]
+            # Aplatir les données pour inclure les infos du produit
+            records = [
+                {
+                    "id": v.id,
+                    "produit_nom": v.produit.nom,
+                    "quantite": v.quantite,
+                    "prix_total": v.prix_total,
+                    "date": v.date.isoformat(),
+                }
+                for v in data
+            ]
         elif data_type == "pertes":
             data = database.get_all_pertes(db)
-            records = [p.model_dump() for p in data]
+            # Aplatir les données pour inclure les infos du produit
+            records = [
+                {
+                    "id": p.id,
+                    "produit_nom": p.produit.nom,
+                    "quantite": p.quantite,
+                    "date": p.date.isoformat(),
+                }
+                for p in data
+            ]
         else:
             raise HTTPException(status_code=400, detail="Type de données non valide.")
+
+    if not records:
+        raise HTTPException(status_code=404, detail="Aucune donnée à exporter.")
 
     df = pd.DataFrame(records)
 

@@ -267,13 +267,14 @@ def get_dashboard_kpis(db: Session):
     top_ventes_today = db.query(Produit.nom, func.sum(Vente.quantite).label('quantite_vendue')).join(Vente).filter(func.date(Vente.date) == today).group_by(Produit.nom).order_by(func.sum(Vente.quantite).desc()).limit(5).all()
     low_stock_produits = db.query(Produit).filter(Produit.quantite < 5).order_by(Produit.quantite).limit(5).all()
     stock_par_produit = db.query(Produit.nom, Produit.quantite).order_by(Produit.quantite.desc()).limit(10).all()
+
     return {
         "ca_today": ca_today,
         "ventes_today": ventes_today,
         "total_stock_quantite": total_stock_quantite,
         "total_stock_valeur": total_stock_valeur,
         "top_ventes_today": [dict(r._mapping) for r in top_ventes_today],
-        "low_stock_produits": [dict(r._mapping) for r in low_stock_produits],
+        "low_stock_produits": low_stock_produits,  # FastAPI s'occupe de la sérialisation via le response_model
         "stock_par_produit": [dict(r._mapping) for r in stock_par_produit]
     }
 

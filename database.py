@@ -277,25 +277,50 @@ def get_dashboard_kpis(db: Session):
         "stock_par_produit": [dict(r._mapping) for r in stock_par_produit]
     }
 
-def get_analyse_financiere(db: Session, start_date_str: str, end_date_str: str):
+"""def get_analyse_financiere(db: Session, start_date_str: str, end_date_str: str):
     start_date = datetime.fromisoformat(start_date_str)
     end_date = datetime.fromisoformat(end_date_str)
+
+    # Chiffre d'affaires et coût des marchandises vendues (COGS) pour la période
     chiffre_affaires = db.query(func.sum(Vente.prix_total)).filter(Vente.date >= start_date, Vente.date <= end_date).scalar() or 0
     cogs = db.query(func.sum(Produit.prix_achat * Vente.quantite)).select_from(Vente).join(Produit).filter(Vente.date >= start_date, Vente.date <= end_date).scalar() or 0
-    benefice = chiffre_affaires - cogs
-    depenses = db.query(func.sum(FraisAnnexe.montant)).filter(FraisAnnexe.date >= start_date, FraisAnnexe.date <= end_date).scalar() or 0
-    benefice_net = benefice - depenses
+    benefice_brut = chiffre_affaires - cogs
+
+    # Calcul des dépenses proportionnelles aux ventes de la période
+    depenses_ajustees = 0
+    ventes_period = db.query(Vente.produit_id, func.sum(Vente.quantite).label('quantite_vendue')).filter(Vente.date >= start_date, Vente.date <= end_date).group_by(Vente.produit_id).all()
+
+    for vente_info in ventes_period:
+        produit_id = vente_info.produit_id
+        quantite_vendue_period = vente_info.quantite_vendue
+
+        # 1. Coût total des frais pour ce produit (historique)
+        total_frais_produit = db.query(func.sum(FraisAnnexe.montant)).filter(FraisAnnexe.produit_id == produit_id).scalar() or 0
+
+        # 2. Quantité totale historique du produit (pour calculer le coût par unité)
+        produit = db.query(Produit).filter(Produit.id == produit_id).first()
+        total_ventes_historique = db.query(func.sum(Vente.quantite)).filter(Vente.produit_id == produit_id).scalar() or 0
+        total_pertes_historique = db.query(func.sum(Perte.quantite)).filter(Perte.produit_id == produit_id).scalar() or 0
+        quantite_totale_historique = produit.quantite + total_ventes_historique + total_pertes_historique
+        
+        if quantite_totale_historique > 0 and total_frais_produit > 0:
+            # 3. Coût du frais par unité
+            cout_frais_par_unite = total_frais_produit / quantite_totale_historique
+            # 4. Dépense pour la période = coût par unité * quantité vendue dans la période
+            depenses_ajustees += cout_frais_par_unite * quantite_vendue_period
+
+    benefice_net = benefice_brut - depenses_ajustees
+
+    # Données pour les graphiques (inchangées)
     graph_data_query = db.query(func.date(Vente.date).label('jour'), func.sum(Vente.prix_total).label('ca_jour')).filter(Vente.date >= start_date, Vente.date <= end_date).group_by(func.date(Vente.date)).order_by(func.date(Vente.date))
     graph_data = graph_data_query.all()
 
-    # Top 5 produits les plus rentables
     top_profitable_query = db.query(
         Produit.nom,
         func.sum((Vente.prix_total) - (Produit.prix_achat * Vente.quantite)).label('total_profit')
     ).join(Produit, Vente.produit_id == Produit.id).filter(Vente.date >= start_date, Vente.date <= end_date).group_by(Produit.nom).order_by(func.sum((Vente.prix_total) - (Produit.prix_achat * Vente.quantite)).desc()).limit(5)
     top_profitable_products = top_profitable_query.all()
 
-    # Top 5 produits avec le plus de pertes
     top_lost_query = db.query(
         Produit.nom,
         func.sum(Perte.quantite).label('total_lost')
@@ -305,10 +330,10 @@ def get_analyse_financiere(db: Session, start_date_str: str, end_date_str: str):
     return {
         "chiffre_affaires": chiffre_affaires,
         "cogs": cogs,
-        "benefice": benefice,
-        "depenses": depenses,
+        "benefice": benefice_brut, # Renommé pour plus de clarté
+        "depenses": depenses_ajustees,
         "benefice_net": benefice_net,
         "graph_data": [{"jour": r.jour.isoformat(), "ca_jour": r.ca_jour} for r in graph_data],
         "top_profitable_products": [dict(r._mapping) for r in top_profitable_products],
         "top_lost_products": [dict(r._mapping) for r in top_lost_products]
-    }
+    }""

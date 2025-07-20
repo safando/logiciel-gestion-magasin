@@ -68,6 +68,23 @@ class Perte(PerteBase):
     produit: Produit
     model_config = ConfigDict(from_attributes=True)
 
+class FraisAnnexeBase(BaseModel):
+    produit_id: int
+    description: str
+    montant: float
+
+class FraisAnnexeCreate(FraisAnnexeBase):
+    pass
+
+class FraisAnnexeUpdate(FraisAnnexeBase):
+    pass
+
+class FraisAnnexe(FraisAnnexeBase):
+    id: int
+    date: datetime
+    produit: Produit
+    model_config = ConfigDict(from_attributes=True)
+
 class DashboardData(BaseModel):
     ca_today: float
     ventes_today: int
@@ -81,6 +98,8 @@ class AnalyseData(BaseModel):
     chiffre_affaires: float
     cogs: float
     benefice: float
+    depenses: float
+    benefice_net: float
     graph_data: List[dict]
     top_profitable_products: List[dict]
     top_lost_products: List[dict]
@@ -213,6 +232,35 @@ async def api_delete_perte(perte_id: int):
         if not deleted:
             raise HTTPException(status_code=404, detail="Perte non trouvée")
         return {"status": "success", "message": "Perte supprimée"}
+
+@app.get("/api/frais", response_model=List[FraisAnnexe])
+async def api_get_frais():
+    with database.get_db() as db:
+        return database.get_all_frais(db)
+
+@app.post("/api/frais", response_model=FraisAnnexe)
+async def api_add_frais(frais: FraisAnnexeCreate):
+    with database.get_db() as db:
+        try:
+            return database.add_frais(db, **frais.model_dump())
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e))
+
+@app.put("/api/frais/{frais_id}", response_model=FraisAnnexe)
+async def api_update_frais(frais_id: int, frais: FraisAnnexeUpdate):
+    with database.get_db() as db:
+        try:
+            return database.update_frais(db, frais_id, frais.produit_id, frais.description, frais.montant)
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e))
+
+@app.delete("/api/frais/{frais_id}")
+async def api_delete_frais(frais_id: int):
+    with database.get_db() as db:
+        deleted = database.delete_frais(db, frais_id)
+        if not deleted:
+            raise HTTPException(status_code=404, detail="Frais non trouvé")
+        return {"status": "success", "message": "Frais supprimé"}
 
 @app.get("/api/dashboard", response_model=DashboardData)
 async def api_get_dashboard_kpis():

@@ -1,5 +1,11 @@
 import pytest
 from fastapi.testclient import TestClient
+import os
+
+# Créer le répertoire static s'il n'existe pas
+if not os.path.exists('static'):
+    os.makedirs('static')
+
 from main import app
 
 @pytest.fixture(scope="module")

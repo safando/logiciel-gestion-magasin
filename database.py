@@ -27,6 +27,7 @@ class Produit(Base):
     quantite = Column(Integer, nullable=False)
     ventes = relationship("Vente", back_populates="produit")
     pertes = relationship("Perte", back_populates="produit")
+    frais_annexes = relationship("FraisAnnexe", back_populates="produit")
 
 class Vente(Base):
     __tablename__ = "ventes"
@@ -44,6 +45,15 @@ class Perte(Base):
     quantite = Column(Integer, nullable=False)
     date = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     produit = relationship("Produit", back_populates="pertes")
+
+class FraisAnnexe(Base):
+    __tablename__ = "frais_annexes"
+    id = Column(Integer, primary_key=True, index=True)
+    produit_id = Column(Integer, ForeignKey("produits.id"), nullable=False)
+    description = Column(String, nullable=False)
+    montant = Column(Float, nullable=False)
+    date = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    produit = relationship("Produit", back_populates="frais_annexes")
 
 # ==============================================================================
 # FONCTIONS UTILITAIRES
@@ -214,6 +224,40 @@ def update_perte(db: Session, perte_id: int, new_produit_id: int, new_quantite: 
     return perte_a_modifier
 
 
+def get_all_frais(db: Session):
+    return db.query(FraisAnnexe).options(joinedload(FraisAnnexe.produit)).order_by(FraisAnnexe.date.desc()).all()
+
+def add_frais(db: Session, produit_id: int, description: str, montant: float):
+    nouveau_frais = FraisAnnexe(produit_id=produit_id, description=description, montant=montant)
+    db.add(nouveau_frais)
+    db.commit()
+    db.refresh(nouveau_frais)
+    db.refresh(nouveau_frais.produit)
+    return nouveau_frais
+
+def update_frais(db: Session, frais_id: int, new_produit_id: int, new_description: str, new_montant: float):
+    frais_a_modifier = db.query(FraisAnnexe).filter(FraisAnnexe.id == frais_id).first()
+    if not frais_a_modifier:
+        raise ValueError("Frais non trouvé.")
+
+    frais_a_modifier.produit_id = new_produit_id
+    frais_a_modifier.description = new_description
+    frais_a_modifier.montant = new_montant
+    frais_a_modifier.date = datetime.now(timezone.utc)
+
+    db.commit()
+    db.refresh(frais_a_modifier)
+    db.refresh(frais_a_modifier.produit)
+    return frais_a_modifier
+
+def delete_frais(db: Session, frais_id: int):
+    frais = db.query(FraisAnnexe).filter(FraisAnnexe.id == frais_id).first()
+    if frais:
+        db.delete(frais)
+        db.commit()
+    return frais
+
+
 def get_dashboard_kpis(db: Session):
     today = datetime.now(timezone.utc).date()
     ca_today = db.query(func.sum(Vente.prix_total)).filter(func.date(Vente.date) == today).scalar() or 0
@@ -239,6 +283,8 @@ def get_analyse_financiere(db: Session, start_date_str: str, end_date_str: str):
     chiffre_affaires = db.query(func.sum(Vente.prix_total)).filter(Vente.date >= start_date, Vente.date <= end_date).scalar() or 0
     cogs = db.query(func.sum(Produit.prix_achat * Vente.quantite)).select_from(Vente).join(Produit).filter(Vente.date >= start_date, Vente.date <= end_date).scalar() or 0
     benefice = chiffre_affaires - cogs
+    depenses = db.query(func.sum(FraisAnnexe.montant)).filter(FraisAnnexe.date >= start_date, FraisAnnexe.date <= end_date).scalar() or 0
+    benefice_net = benefice - depenses
     graph_data_query = db.query(func.date(Vente.date).label('jour'), func.sum(Vente.prix_total).label('ca_jour')).filter(Vente.date >= start_date, Vente.date <= end_date).group_by(func.date(Vente.date)).order_by(func.date(Vente.date))
     graph_data = graph_data_query.all()
 
@@ -260,6 +306,8 @@ def get_analyse_financiere(db: Session, start_date_str: str, end_date_str: str):
         "chiffre_affaires": chiffre_affaires,
         "cogs": cogs,
         "benefice": benefice,
+        "depenses": depenses,
+        "benefice_net": benefice_net,
         "graph_data": [{"jour": r.jour.isoformat(), "ca_jour": r.ca_jour} for r in graph_data],
         "top_profitable_products": [dict(r._mapping) for r in top_profitable_products],
         "top_lost_products": [dict(r._mapping) for r in top_lost_products]

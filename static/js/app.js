@@ -174,6 +174,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 case 'stock': await loadStockTab(); break;
                 case 'ventes': await loadVentesTab(); break;
                 case 'pertes': await loadPertesTab(); break;
+                case 'frais': await loadFraisTab(); break;
                 case 'analyse': await loadAnalyseTab(); break;
             }
         } catch (error) {
@@ -304,9 +305,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="col-md-2 d-flex align-items-end"><button id="run-analysis" class="btn btn-primary w-100">Analyser</button></div>
             </div></div></div>
             <div class="row">
-                <div class="col-md-4"><div class="card text-white bg-primary mb-3"><div class="card-header">Chiffre d'Affaires</div><div class="card-body"><h5 class="card-title" id="ca-value">0.00 €</h5></div></div></div>
-                <div class="col-md-4"><div class="card text-white bg-warning mb-3"><div class="card-header">Coût des Ventes</div><div class="card-body"><h5 class="card-title" id="cogs-value">0.00 €</h5></div></div></div>
-                <div class="col-md-4"><div class="card text-white bg-success mb-3"><div class="card-header">Bénéfice Brut</div><div class="card-body"><h5 class="card-title" id="benefice-value">0.00 €</h5></div></div></div>
+                <div class="col-md-3"><div class="card text-white bg-primary mb-3"><div class="card-header">Chiffre d'Affaires</div><div class="card-body"><h5 class="card-title" id="ca-value">0.00 €</h5></div></div></div>
+                <div class="col-md-3"><div class="card text-white bg-info mb-3"><div class="card-header">Coût des Ventes</div><div class="card-body"><h5 class="card-title" id="cogs-value">0.00 €</h5></div></div></div>
+                <div class="col-md-3"><div class="card text-white bg-secondary mb-3"><div class="card-header">Dépenses</div><div class="card-body"><h5 class="card-title" id="depenses-value">0.00 €</h5></div></div></div>
+                <div class="col-md-3"><div class="card text-white bg-success mb-3"><div class="card-header">Bénéfice Net</div><div class="card-body"><h5 class="card-title" id="benefice-net-value">0.00 €</h5></div></div></div>
             </div>
             <div class="card"><div class="card-header">Évolution du Chiffre d'Affaires</div><div class="card-body"><canvas id="ca-chart"></canvas></div></div>
             <div class="row mt-4">
@@ -332,7 +334,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             document.getElementById('ca-value').textContent = `${data.chiffre_affaires.toFixed(2)} €`;
             document.getElementById('cogs-value').textContent = `${data.cogs.toFixed(2)} €`;
-            document.getElementById('benefice-value').textContent = `${data.benefice.toFixed(2)} €`;
+            document.getElementById('depenses-value').textContent = `${data.depenses.toFixed(2)} €`;
+            document.getElementById('benefice-net-value').textContent = `${data.benefice_net.toFixed(2)} €`;
 
             if(chart) chart.destroy();
             chart = new Chart(document.getElementById('ca-chart').getContext('2d'), {
@@ -362,6 +365,32 @@ document.addEventListener('DOMContentLoaded', () => {
 
         document.getElementById('run-analysis').addEventListener('click', runAnalysis);
         runAnalysis();
+    }
+
+    async function loadFraisTab() {
+        const [produits, frais] = await Promise.all([
+            secureFetch('/api/produits').then(res => res.json()),
+            secureFetch('/api/frais').then(res => res.json())
+        ]);
+        let options = produits.map(p => `<option value="${p.id}">${p.nom}</option>`).join('');
+
+        mainContent.innerHTML = `
+            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom"><h1 class="h2">Gestion des Frais Annexes</h1></div>
+            <div class="card mb-4"><div class="card-header">Ajouter un frais</div><div class="card-body"><form id="frais-form"><div class="row">
+                <div class="col-md-4 mb-3"><label class="form-label">Produit</label><select class="form-select" name="produit_id" required><option value="" disabled selected>Choisir...</option>${options}</select></div>
+                <div class="col-md-5 mb-3"><label class="form-label">Description</label><input type="text" class="form-control" name="description" required></div>
+                <div class="col-md-2 mb-3"><label class="form-label">Montant</label><input type="number" class="form-control" name="montant" step="0.01" min="0" required></div>
+                <div class="col-md-1 d-flex align-items-end"><button type="submit" class="btn btn-primary w-100">Ajouter</button></div>
+            </div></form></div></div>
+            <h2 class="h3">Liste des Frais</h2>
+            <div class="table-responsive"><table class="table table-striped table-sm" id="frais-table"><thead><tr><th>Produit</th><th>Description</th><th>Montant</th><th>Date</th><th>Actions</th></tr></thead><tbody></tbody></table></div>`;
+
+        const tableBody = document.querySelector('#frais-table tbody');
+        tableBody.innerHTML = '';
+        frais.forEach(f => {
+            const row = tableBody.insertRow();
+            row.innerHTML = `<td>${f.produit.nom}</td><td>${f.description}</td><td>${f.montant.toFixed(2)} €</td><td>${new Date(f.date).toLocaleString('fr-FR')}</td><td><button class="btn btn-sm btn-warning edit-frais-btn" data-id="${f.id}"><i class="bi bi-pencil-square"></i></button> <button class="btn btn-sm btn-danger delete-frais-btn" data-id="${f.id}"><i class="bi bi-trash"></i></button></td>`;
+        });
     }
 
     // --- MODAL LOGIC ---
@@ -467,6 +496,27 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('perte-modal').addEventListener('hidden.bs.modal', e => e.target.remove());
     }
 
+    function openFraisModal(frais, produits) {
+        let options = produits.map(p => `<option value="${p.id}" ${frais && p.id === frais.produit.id ? 'selected' : ''}>${p.nom}</option>`).join('');
+        const modalHTML = `
+        <div class="modal fade" id="frais-modal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+            <form id="frais-edit-form">
+                <div class="modal-header"><h5 class="modal-title">Modifier le frais</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                <div class="modal-body">
+                    <input type="hidden" name="id" value="${frais.id}">
+                    <div class="mb-3"><label class="form-label">Produit</label><select class="form-select" name="produit_id" required>${options}</select></div>
+                    <div class="mb-3"><label class="form-label">Description</label><input type="text" class="form-control" name="description" required value="${frais.description}"></div>
+                    <div class="mb-3"><label class="form-label">Montant</label><input type="number" class="form-control" name="montant" required step="0.01" value="${frais.montant}"></div>
+                </div>
+                <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button><button type="submit" class="btn btn-primary">Enregistrer</button></div>
+            </form>
+        </div></div></div>`;
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+        const modal = new bootstrap.Modal(document.getElementById('frais-modal'));
+        modal.show();
+        document.getElementById('frais-modal').addEventListener('hidden.bs.modal', e => e.target.remove());
+    }
+
     // --- EVENT LISTENERS ---
 
     document.addEventListener('click', async (event) => {
@@ -534,6 +584,24 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
+        if (targetClosest('.edit-frais-btn')) {
+            const id = targetClosest('.edit-frais-btn').dataset.id;
+            const [frais, produits] = await Promise.all([
+                secureFetch('/api/frais').then(res => res.json()),
+                secureFetch('/api/produits').then(res => res.json())
+            ]);
+            const fraisItem = frais.find(f => f.id == id);
+            openFraisModal(fraisItem, produits);
+        }
+
+        if (targetClosest('.delete-frais-btn')) {
+            const id = targetClosest('.delete-frais-btn').dataset.id;
+            if (confirm("Êtes-vous sûr ?")) {
+                const response = await secureFetch(`/api/frais/${id}`, { method: 'DELETE' });
+                if (response.ok) { loadFraisTab(); showToast('Frais supprimé.'); }
+            }
+        }
+
         if (target.matches('.export-btn')) {
             event.preventDefault();
             const { type, format } = target.dataset;
@@ -584,6 +652,25 @@ document.addEventListener('DOMContentLoaded', () => {
             const id = form.elements['id'].value;
             const data = { produit_id: parseInt(form.elements['produit_id'].value), quantite: parseInt(form.elements['quantite'].value) };
             await handleFormSubmit(`/api/pertes/${id}`, 'PUT', data, 'perte-modal', loadPertesTab);
+        }
+
+        if (form.id === 'frais-form') {
+            const data = {
+                produit_id: parseInt(form.elements['produit_id'].value),
+                description: form.elements['description'].value,
+                montant: parseFloat(form.elements['montant'].value)
+            };
+            await handleFormSubmit('/api/frais', 'POST', data, null, loadFraisTab);
+        }
+
+        if (form.id === 'frais-edit-form') {
+            const id = form.elements['id'].value;
+            const data = {
+                produit_id: parseInt(form.elements['produit_id'].value),
+                description: form.elements['description'].value,
+                montant: parseFloat(form.elements['montant'].value)
+            };
+            await handleFormSubmit(`/api/frais/${id}`, 'PUT', data, 'frais-modal', loadFraisTab);
         }
     });
 

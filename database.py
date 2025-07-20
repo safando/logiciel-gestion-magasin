@@ -277,7 +277,7 @@ def get_dashboard_kpis(db: Session):
         "stock_par_produit": [dict(r._mapping) for r in stock_par_produit]
     }
 
-"""def get_analyse_financiere(db: Session, start_date_str: str, end_date_str: str):
+def get_analyse_financiere(db: Session, start_date_str: str, end_date_str: str):
     start_date = datetime.fromisoformat(start_date_str)
     end_date = datetime.fromisoformat(end_date_str)
 

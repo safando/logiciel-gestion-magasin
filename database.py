@@ -273,7 +273,7 @@ def get_dashboard_kpis(db: Session):
         "total_stock_quantite": total_stock_quantite,
         "total_stock_valeur": total_stock_valeur,
         "top_ventes_today": [dict(r._mapping) for r in top_ventes_today],
-        "low_stock_produits": [p.model_dump() for p in low_stock_produits],
+        "low_stock_produits": [dict(r._mapping) for r in low_stock_produits],
         "stock_par_produit": [dict(r._mapping) for r in stock_par_produit]
     }
 

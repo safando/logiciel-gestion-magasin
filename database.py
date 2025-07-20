@@ -336,4 +336,4 @@ def get_dashboard_kpis(db: Session):
         "graph_data": [{"jour": r.jour.isoformat(), "ca_jour": r.ca_jour} for r in graph_data],
         "top_profitable_products": [dict(r._mapping) for r in top_profitable_products],
         "top_lost_products": [dict(r._mapping) for r in top_lost_products]
-    }""
+    }

@@ -192,10 +192,10 @@ document.addEventListener('DOMContentLoaded', () => {
         mainContent.innerHTML = `
             <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom"><h1 class="h2">Tableau de Bord</h1></div>
             <div class="row">
-                <div class="col-md-3 mb-3"><div class="card text-white bg-primary"><div class="card-header">Chiffre d'Affaires (Aujourd'hui)</div><div class="card-body"><h5 class="card-title">${kpis.ca_today.toFixed(2)} €</h5></div></div></div>
+                <div class="col-md-3 mb-3"><div class="card text-white bg-primary"><div class="card-header">Chiffre d'Affaires (Aujourd'hui)</div><div class="card-body"><h5 class="card-title">${kpis.ca_today.toFixed(2)} XOF</h5></div></div></div>
                 <div class="col-md-3 mb-3"><div class="card text-white bg-success"><div class="card-header">Nombre de Ventes (Aujourd'hui)</div><div class="card-body"><h5 class="card-title">${kpis.ventes_today}</h5></div></div></div>
                 <div class="col-md-3 mb-3"><div class="card text-dark bg-light"><div class="card-header">Quantité Totale en Stock</div><div class="card-body"><h5 class="card-title">${kpis.total_stock_quantite} unités</h5></div></div></div>
-                <div class="col-md-3 mb-3"><div class="card text-dark bg-warning"><div class="card-header">Valeur Totale du Stock</div><div class="card-body"><h5 class="card-title">${kpis.total_stock_valeur.toFixed(2)} €</h5></div></div></div>
+                <div class="col-md-3 mb-3"><div class="card text-dark bg-warning"><div class="card-header">Valeur Totale du Stock</div><div class="card-body"><h5 class="card-title">${kpis.total_stock_valeur.toFixed(2)} XOF</h5></div></div></div>
             </div>
             <div class="row mt-4">
                 <div class="col-md-4"><div class="card"><div class="card-header"><i class="bi bi-graph-up"></i> Ventes du Jour</div><ul class="list-group list-group-flush">${topVentesHtml}</ul></div></div>
@@ -221,7 +221,7 @@ document.addEventListener('DOMContentLoaded', () => {
         tableBody.innerHTML = '';
         produits.forEach(p => {
             const row = tableBody.insertRow();
-            row.innerHTML = `<td>${p.nom}</td><td>${p.prix_achat.toFixed(2)} €</td><td>${p.prix_vente.toFixed(2)} €</td><td>${p.quantite}</td><td><button class="btn btn-sm btn-warning edit-btn" data-id="${p.id}"><i class="bi bi-pencil-square"></i></button> <button class="btn btn-sm btn-danger delete-btn" data-id="${p.id}"><i class="bi bi-trash"></i></button></td>`;
+            row.innerHTML = `<td>${p.nom}</td><td>${p.prix_achat.toFixed(2)} XOF</td><td>${p.prix_vente.toFixed(2)} XOF</td><td>${p.quantite}</td><td><button class="btn btn-sm btn-warning edit-btn" data-id="${p.id}"><i class="bi bi-pencil-square"></i></button> <button class="btn btn-sm btn-danger delete-btn" data-id="${p.id}"><i class="bi bi-trash"></i></button></td>`;
         });
 
         document.getElementById('stock-search').addEventListener('keyup', (e) => {
@@ -253,7 +253,7 @@ document.addEventListener('DOMContentLoaded', () => {
         tableBody.innerHTML = '';
         ventes.forEach(v => {
             const row = tableBody.insertRow();
-            row.innerHTML = `<td>${v.produit.nom}</td><td>${v.quantite}</td><td>${v.prix_total.toFixed(2)} €</td><td>${new Date(v.date).toLocaleString('fr-FR')}</td><td><button class="btn btn-sm btn-warning edit-vente-btn" data-id="${v.id}"><i class="bi bi-pencil-square"></i></button> <button class="btn btn-sm btn-danger delete-vente-btn" data-id="${v.id}"><i class="bi bi-trash"></i></button></td>`;
+            row.innerHTML = `<td>${v.produit.nom}</td><td>${v.quantite}</td><td>${v.prix_total.toFixed(2)} XOF</td><td>${new Date(v.date).toLocaleString('fr-FR')}</td><td><button class="btn btn-sm btn-warning edit-vente-btn" data-id="${v.id}"><i class="bi bi-pencil-square"></i></button> <button class="btn btn-sm btn-danger delete-vente-btn" data-id="${v.id}"><i class="bi bi-trash"></i></button></td>`;
         });
 
         document.getElementById('ventes-search').addEventListener('keyup', (e) => {
@@ -305,10 +305,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="col-md-2 d-flex align-items-end"><button id="run-analysis" class="btn btn-primary w-100">Analyser</button></div>
             </div></div></div>
             <div class="row">
-                <div class="col-md-3"><div class="card text-white bg-primary mb-3"><div class="card-header">Chiffre d'Affaires</div><div class="card-body"><h5 class="card-title" id="ca-value">0.00 €</h5></div></div></div>
-                <div class="col-md-3"><div class="card text-white bg-info mb-3"><div class="card-header">Coût des Ventes</div><div class="card-body"><h5 class="card-title" id="cogs-value">0.00 €</h5></div></div></div>
-                <div class="col-md-3"><div class="card text-white bg-secondary mb-3"><div class="card-header">Dépenses</div><div class="card-body"><h5 class="card-title" id="depenses-value">0.00 €</h5></div></div></div>
-                <div class="col-md-3"><div class="card text-white bg-success mb-3"><div class="card-header">Bénéfice Net</div><div class="card-body"><h5 class="card-title" id="benefice-net-value">0.00 €</h5></div></div></div>
+                <div class="col-md-3"><div class="card text-white bg-primary mb-3"><div class="card-header">Chiffre d'Affaires</div><div class="card-body"><h5 class="card-title" id="ca-value">0.00 XOF</h5></div></div></div>
+                <div class="col-md-3"><div class="card text-white bg-info mb-3"><div class="card-header">Coût des Ventes</div><div class="card-body"><h5 class="card-title" id="cogs-value">0.00 XOF</h5></div></div></div>
+                <div class="col-md-3"><div class="card text-white bg-secondary mb-3"><div class="card-header">Dépenses</div><div class="card-body"><h5 class="card-title" id="depenses-value">0.00 XOF</h5></div></div></div>
+                <div class="col-md-3"><div class="card text-white bg-success mb-3"><div class="card-header">Bénéfice Net</div><div class="card-body"><h5 class="card-title" id="benefice-net-value">0.00 XOF</h5></div></div></div>
             </div>
             <div class="card"><div class="card-header">Évolution du Chiffre d'Affaires</div><div class="card-body"><canvas id="ca-chart"></canvas></div></div>
             <div class="row mt-4">
@@ -332,10 +332,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await secureFetch(`/api/analyse?start_date=${startDate}&end_date=${endDate}`);
             const data = await response.json();
 
-            document.getElementById('ca-value').textContent = `${data.chiffre_affaires.toFixed(2)} €`;
-            document.getElementById('cogs-value').textContent = `${data.cogs.toFixed(2)} €`;
-            document.getElementById('depenses-value').textContent = `${data.depenses.toFixed(2)} €`;
-            document.getElementById('benefice-net-value').textContent = `${data.benefice_net.toFixed(2)} €`;
+            document.getElementById('ca-value').textContent = `${data.chiffre_affaires.toFixed(2)} XOF`;
+            document.getElementById('cogs-value').textContent = `${data.cogs.toFixed(2)} XOF`;
+            document.getElementById('depenses-value').textContent = `${data.depenses.toFixed(2)} XOF`;
+            document.getElementById('benefice-net-value').textContent = `${data.benefice_net.toFixed(2)} XOF`;
 
             if(chart) chart.destroy();
             chart = new Chart(document.getElementById('ca-chart').getContext('2d'), {
@@ -389,7 +389,7 @@ document.addEventListener('DOMContentLoaded', () => {
         tableBody.innerHTML = '';
         frais.forEach(f => {
             const row = tableBody.insertRow();
-            row.innerHTML = `<td>${f.produit.nom}</td><td>${f.description}</td><td>${f.montant.toFixed(2)} €</td><td>${new Date(f.date).toLocaleString('fr-FR')}</td><td><button class="btn btn-sm btn-warning edit-frais-btn" data-id="${f.id}"><i class="bi bi-pencil-square"></i></button> <button class="btn btn-sm btn-danger delete-frais-btn" data-id="${f.id}"><i class="bi bi-trash"></i></button></td>`;
+            row.innerHTML = `<td>${f.produit.nom}</td><td>${f.description}</td><td>${f.montant.toFixed(2)} XOF</td><td>${new Date(f.date).toLocaleString('fr-FR')}</td><td><button class="btn btn-sm btn-warning edit-frais-btn" data-id="${f.id}"><i class="bi bi-pencil-square"></i></button> <button class="btn btn-sm btn-danger delete-frais-btn" data-id="${f.id}"><i class="bi bi-trash"></i></button></td>`;
         });
     }
 

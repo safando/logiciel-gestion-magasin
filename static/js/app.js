@@ -497,7 +497,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function openFraisModal(frais, produits) {
-        let options = produits.map(p => `<option value="${p.id}" ${frais && p.id === frais.produit.id ? 'selected' : ''}>${p.nom}</option>`).join('');
+        let options = produits.map(p => `<option value="${p.id}" ${frais && frais.produit && p.id === frais.produit.id ? 'selected' : ''}>${p.nom}</option>`).join('');
         const modalHTML = `
         <div class="modal fade" id="frais-modal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
             <form id="frais-edit-form">
@@ -512,37 +512,9 @@ document.addEventListener('DOMContentLoaded', () => {
             </form>
         </div></div></div>`;
         document.body.insertAdjacentHTML('beforeend', modalHTML);
-
-        const modalElement = document.getElementById('frais-modal');
-        const modal = new bootstrap.Modal(modalElement);
-        const form = document.getElementById('frais-edit-form');
-
-        form.addEventListener('submit', async (event) => {
-            event.preventDefault();
-            const id = form.elements['id'].value;
-            const data = {
-                produit_id: parseInt(form.elements['produit_id'].value),
-                description: form.elements['description'].value,
-                montant: parseFloat(form.elements['montant'].value)
-            };
-            await handleFormSubmit(`/api/frais/${id}`, 'PUT', data, 'frais-modal', loadFraisTab);
-        });
-
+        const modal = new bootstrap.Modal(document.getElementById('frais-modal'));
         modal.show();
-        modalElement.addEventListener('hidden.bs.modal', e => e.target.remove());
-    }
-
-        document.getElementById('frais-edit-form').addEventListener('submit', async (event) => {
-            event.preventDefault();
-            const form = event.target;
-            const id = form.elements['id'].value;
-            const data = {
-                produit_id: parseInt(form.elements['produit_id'].value),
-                description: form.elements['description'].value,
-                montant: parseFloat(form.elements['montant'].value)
-            };
-            await handleFormSubmit(`/api/frais/${id}`, 'PUT', data, 'frais-modal', loadFraisTab);
-        });
+        document.getElementById('frais-modal').addEventListener('hidden.bs.modal', e => e.target.remove());
     }
 
     // --- EVENT LISTENERS ---
@@ -690,6 +662,17 @@ document.addEventListener('DOMContentLoaded', () => {
             };
             await handleFormSubmit('/api/frais', 'POST', data, null, loadFraisTab);
         }
+
+        if (form.id === 'frais-edit-form') {
+            const id = form.elements['id'].value;
+            const data = {
+                produit_id: parseInt(form.elements['produit_id'].value),
+                description: form.elements['description'].value,
+                montant: parseFloat(form.elements['montant'].value)
+            };
+            await handleFormSubmit(`/api/frais/${id}`, 'PUT', data, 'frais-modal', loadFraisTab);
+        }
+    });
 
         if (form.id === 'frais-edit-form') {
             const id = form.elements['id'].value;

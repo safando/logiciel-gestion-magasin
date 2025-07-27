@@ -515,6 +515,18 @@ document.addEventListener('DOMContentLoaded', () => {
         const modal = new bootstrap.Modal(document.getElementById('frais-modal'));
         modal.show();
         document.getElementById('frais-modal').addEventListener('hidden.bs.modal', e => e.target.remove());
+
+        document.getElementById('frais-edit-form').addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const form = event.target;
+            const id = form.elements['id'].value;
+            const data = {
+                produit_id: parseInt(form.elements['produit_id'].value),
+                description: form.elements['description'].value,
+                montant: parseFloat(form.elements['montant'].value)
+            };
+            await handleFormSubmit(`/api/frais/${id}`, 'PUT', data, 'frais-modal', loadFraisTab);
+        });
     }
 
     // --- EVENT LISTENERS ---

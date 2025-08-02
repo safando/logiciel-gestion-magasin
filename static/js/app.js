@@ -161,7 +161,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return response;
     }
 
-    loginForm.addEventListener('submit', handleLogin);
     logoutButton.addEventListener('click', handleLogout);
 
     // --- CORE APP LOGIC ---
@@ -631,6 +630,10 @@ document.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('submit', async (event) => {
         event.preventDefault();
         const form = event.target;
+
+        if (form.id === 'login-form') {
+            await handleLogin(event);
+        }
 
         if (form.id === 'vente-form') {
             const data = { produit_id: parseInt(form.elements['produit_id'].value), quantite: parseInt(form.elements['quantite'].value) };

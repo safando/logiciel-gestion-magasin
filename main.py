@@ -70,3 +70,32 @@ def read_root():
 def favicon():
     """Gère la requête pour favicon.ico pour éviter les erreurs 404."""
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+# =============================================================================
+# ROUTE DE SERVICE TEMPORAIRE POUR RÉINITIALISER L'ADMIN
+# =============================================================================
+@app.get("/reset-admin-password-safando-12345", include_in_schema=False)
+def reset_admin(db: Session = Depends(database.get_db)):
+    """
+    Cette route secrète et temporaire supprime et recrée l'utilisateur admin
+    pour corriger le hachage du mot de passe sur le serveur de production.
+    """
+    username = "admin"
+    password = "Dakar2026@"
+
+    # Supprimer l'utilisateur existant s'il y en a un
+    user = database.get_user_by_username(db, username=username)
+    if user:
+        db.delete(user)
+        db.commit()
+        msg = f"Utilisateur '{username}' existant supprimé. "
+    else:
+        msg = f"Aucun utilisateur '{username}' existant trouvé. "
+
+    # Créer le nouvel utilisateur avec le hachage correct
+    hashed_password = auth.get_password_hash(password)
+    new_user = database.User(username=username, hashed_password=hashed_password)
+    db.add(new_user)
+    db.commit()
+    
+    return {"message": msg + f"Nouvel utilisateur '{username}' créé avec succès."}

@@ -136,4 +136,4 @@ dmypy.json
 cython_debug/
 
 # Database
-magasin.db
+

@@ -10,7 +10,7 @@ from datetime import datetime, timezone
 # ==============================================================================
 
 # Utilise la base de données 'magasin.db' par défaut.
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./magasin.db")
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./test.db")
 
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
